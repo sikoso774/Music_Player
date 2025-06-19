@@ -1,16 +1,16 @@
 [project]
 name = "music-player-v3"
 version = "0.1.0"
-description = "Mon lecteur de musique avec une interface graphique moderne"
+description = ""
 authors = [
     {name = "Zoléni Kokolo Zassi",email = "zolenikokolozassi@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12, <3.14"
 dependencies = [
+    "pyside6 (>=6.9.1,<7.0.0)",
     "pygame (>=2.6.1,<3.0.0)",
-    "mutagen (>=1.47.0,<2.0.0)",
-    "pyglet (>=2.1.6,<3.0.0)"
+    "mutagen (>=1.47.0,<2.0.0)"
 ]
 
 
