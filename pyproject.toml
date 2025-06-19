@@ -1,0 +1,19 @@
+[project]
+name = "music-player-v3"
+version = "0.1.0"
+description = "Mon lecteur de musique avec une interface graphique moderne"
+authors = [
+    {name = "Zoléni Kokolo Zassi",email = "zolenikokolozassi@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pygame (>=2.6.1,<3.0.0)",
+    "mutagen (>=1.47.0,<2.0.0)",
+    "pyglet (>=2.1.6,<3.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
