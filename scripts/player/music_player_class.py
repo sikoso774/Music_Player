@@ -4,7 +4,7 @@ from .audio_info import prepare_playlist_with_durations, get_audio_info
 from .pygame_setup import initialize_pygame_mixer, quit_pygame_mixer
 # Importe la fonction renommée ici
 from .player_logic import load_and_play, pause_pygame_music, unpause_pygame_music, stop_current_music, \
-    get_pygame_playback_time_ms # <-- Changement ici
+    get_pygame_playback_time_ms
 import os
 
 
@@ -51,7 +51,7 @@ class MusicPlayer:
         self._start_position_ms_on_play = start_pos_ms
 
         # Passe la position en secondes à load_and_play
-        if load_and_play(track_path, start_pos_ms / 1000.0): # <-- Changement ici
+        if load_and_play(track_path, start_pos_ms / 1000.0):
             self.is_playing = True
             self.is_paused = False  # La musique est en lecture, pas en pause
         else:
@@ -77,7 +77,7 @@ class MusicPlayer:
 
     def play_next_music(self):
         """Passe à la musique suivante dans la playlist."""
-        print("Passage à la musique suivante.")  # Message pour changement de musique
+        print("Passage à la musique suivante.")
         if not self.playlist:
             return
 
@@ -88,7 +88,7 @@ class MusicPlayer:
 
     def play_previous_music(self):
         """Revient à la musique précédente dans la playlist."""
-        print("Passage à la musique précédente.")  # Message pour changement de musique
+        print("Passage à la musique précédente.")
         if not self.playlist:
             return
 
@@ -102,7 +102,7 @@ class MusicPlayer:
         Déplace la lecture à une position spécifique en millisecondes.
         Si la musique n'est pas en lecture, elle la charge et la lance à cette position.
         """
-        print(f"Déplacement à {position_ms / 1000.0:.2f}s.")  # Message pour seek
+        print(f"Déplacement à {position_ms / 1000.0:.2f}s.")
         if not self.playlist:
             print("Impossible de faire un seek : la playlist est vide.")
             return
@@ -178,10 +178,11 @@ class MusicPlayer:
         # Affichage du temps en console
         current_time_formatted = self.format_time(current_pos_abs_ms)
         total_time_formatted = self.format_time(total_duration_ms)
-        print(f"Temps actuel: {current_time_formatted} / {total_time_formatted}", end='\r') # \r pour overwrite
+        # Utilise '\r' pour surécrire la ligne actuelle et '\n' pour un nouveau message
+        print(f"Temps actuel: {current_time_formatted} / {total_time_formatted}", end='\r')
 
         if total_duration_ms > 0 and current_pos_abs_ms >= total_duration_ms - 50:  # 50ms de marge
-            print("\nMusique terminée détectée par temps, passage à la suivante...") # \n pour nouvelle ligne
+            print("\nMusique terminée détectée par temps, passage à la suivante...")
             self.play_next_music()
             return True
 
@@ -190,4 +191,4 @@ class MusicPlayer:
     def quit(self):
         """Arrête le mixeur Pygame et libère les ressources."""
         stop_current_music()
-        quit_pygame_mixer() # N'oublie pas d'appeler cette fonction pour un nettoyage complet
+        quit_pygame_mixer()

@@ -5,13 +5,13 @@ import os
 
 # --- Fonctions d'action de Pygame ---
 
-def load_and_play(track_path, start_pos_s=0.0): # Changement: start_pos_ms devient start_pos_s
+def load_and_play(track_path, start_pos_s=0.0):
     """
     Charge et lance la lecture d'un morceau avec Pygame.mixer.music.
     """
     try:
         pygame.mixer.music.load(track_path)
-        pygame.mixer.music.play(start=start_pos_s) # Utilise start_pos_s directement
+        pygame.mixer.music.play(start=start_pos_s)
         # Message pour le changement de musique/lecture
         print(f"\nLecture de : {os.path.basename(track_path)} depuis {start_pos_s:.2f}s")
         return True

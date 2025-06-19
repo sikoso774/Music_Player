@@ -1,6 +1,5 @@
 # Création de la classe MusicAppGUI
 import tkinter as tk
-from tkinter import ttk
 import os
 import pygame
 
@@ -13,6 +12,7 @@ from scripts.gui.gui_elements import (
     create_playlist_frame, create_playlist_listbox,
     create_album_label,create_artist_label
 )
+# Utilise la fonction format_time de gui_logic.py pour l'affichage GUI
 from scripts.gui.gui_logic import format_time, calculate_seek_position
 from scripts.start_up.instructions import NOM, ANNEE # Importe les constantes pour le copyright
 
@@ -32,14 +32,14 @@ class MusicAppGUI:
         self.current_track_name = tk.StringVar(value="Aucune musique chargée")
         self.current_time_str = tk.StringVar(value="00:00")
         self.total_time_str = tk.StringVar(value="00:00")
-        self.current_artist_name = tk.StringVar(value="Artiste inconnu")  # NOUVEAU
-        self.current_album_name = tk.StringVar(value="Album inconnu")  # NOUVEAU
+        self.current_artist_name = tk.StringVar(value="Artiste inconnu")
+        self.current_album_name = tk.StringVar(value="Album inconnu")
         self.update_interval = 100
 
         # --- Widgets de l'interface ---
         self.track_label = create_track_label(master, self.current_track_name)
-        self.artist_label = create_artist_label(master, self.current_artist_name)  # NOUVEAU
-        self.album_label = create_album_label(master, self.current_album_name)  # NOUVEAU
+        self.artist_label = create_artist_label(master, self.current_artist_name)
+        self.album_label = create_album_label(master, self.current_album_name)
 
         time_frame = create_time_frame(master)
         self.time_label, self.total_time_label = create_time_labels(
@@ -70,6 +70,7 @@ class MusicAppGUI:
             self.player.load_and_play_music(0)
             self._update_ui_for_new_track()
             self._highlight_current_track()
+            # Démarrer la boucle de mise à jour de l'UI
             self.master.after(self.update_interval, self.update_player_status)
         else:
             self.current_track_name.set("Aucune musique trouvée. Veuillez relancer.")
@@ -148,6 +149,7 @@ class MusicAppGUI:
             self.current_track_name.set(display_title)
             self.current_artist_name.set(metadata.get('artist', "Artiste inconnu"))
             self.current_album_name.set(metadata.get('album', "Album inconnu"))
+            # Utilise la fonction format_time de gui_logic.py pour l'affichage de l'UI
             self.total_time_str.set(format_time(duration_ms))
 
             if duration_ms > 0:
