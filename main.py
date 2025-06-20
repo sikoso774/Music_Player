@@ -1,6 +1,6 @@
 import pygame
 import tkinter as tk
-import PySide6
+
 
 from scripts.start_up.instructions import InstructionsDisplay, NOM, ANNEE
 from scripts.start_up.presentation import show_presentation_screen
