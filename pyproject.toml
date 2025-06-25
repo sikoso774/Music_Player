@@ -1,16 +1,16 @@
 [project]
 name = "music-player-v3"
 version = "0.1.0"
-description = ""
+description = "My Music Player with better GUI"
 authors = [
     {name = "Zoléni Kokolo Zassi",email = "zolenikokolozassi@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.12, <3.14"
+requires-python = ">=3.12"
 dependencies = [
-    "pyside6 (>=6.9.1,<7.0.0)",
+    "mutagen (>=1.47.0,<2.0.0)",
     "pygame (>=2.6.1,<3.0.0)",
-    "mutagen (>=1.47.0,<2.0.0)"
+    "customtkinter (>=5.2.2,<6.0.0)"
 ]
 
 
