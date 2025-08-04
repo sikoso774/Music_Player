@@ -2,3 +2,12 @@
 /shelf/
 /workspace.xml
 .idea/
+# Fichiers et dossiers générés par Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Fichiers de gestion de dépendances
+# Si tu n'utilises pas poetry, ces lignes ne sont pas nécessaires
+# poetry.lock
+# pyproject.toml
