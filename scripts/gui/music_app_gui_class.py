@@ -1,5 +1,7 @@
-# Création de la classe MusicAppGUI
-import tkinter as tk
+# scripts/gui/music_app_gui_class.py
+
+import customtkinter as ctk
+import tkinter as tk # Garder l'import pour la Listbox
 import os
 import pygame
 
@@ -29,11 +31,11 @@ class MusicAppGUI:
             master.destroy()
             return
 
-        self.current_track_name = tk.StringVar(value="Aucune musique chargée")
-        self.current_time_str = tk.StringVar(value="00:00")
-        self.total_time_str = tk.StringVar(value="00:00")
-        self.current_artist_name = tk.StringVar(value="Artiste inconnu")
-        self.current_album_name = tk.StringVar(value="Album inconnu")
+        self.current_track_name = ctk.StringVar(value="Aucune musique chargée")
+        self.current_time_str = ctk.StringVar(value="00:00")
+        self.total_time_str = ctk.StringVar(value="00:00")
+        self.current_artist_name = ctk.StringVar(value="Artiste inconnu")
+        self.current_album_name = ctk.StringVar(value="Album inconnu")
         self.update_interval = 100
 
         # --- Widgets de l'interface ---
@@ -61,7 +63,7 @@ class MusicAppGUI:
         self.playlist_listbox = create_playlist_listbox(playlist_frame, self.on_playlist_select)
         self._populate_playlist_listbox()
 
-        self.copyright_label = create_copyright_label(master, "", NOM, ANNEE)
+        self.copyright_label = create_copyright_label(master, NOM, ANNEE)
 
         master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
@@ -78,7 +80,7 @@ class MusicAppGUI:
 
     def _populate_playlist_listbox(self):
         """Remplit la Listbox avec les noms des morceaux de la playlist."""
-        self.playlist_listbox.delete(0, tk.END) # Efface le contenu existant
+        self.playlist_listbox.delete(0, tk.END)
         for index, track_info in enumerate(self.player.playlist):
             track_name = os.path.basename(track_info['path'])
             self.playlist_listbox.insert(tk.END, f"{index + 1}. {track_name}")
@@ -87,19 +89,19 @@ class MusicAppGUI:
         """Gère la sélection d'un morceau dans la Listbox (double-clic)."""
         selected_indices = self.playlist_listbox.curselection()
         if selected_indices:
-            selected_index = selected_indices[0] # Récupère l'index de l'élément sélectionné
+            selected_index = selected_indices[0]
             print(f"Morceau sélectionné dans la liste : {selected_index}")
             self.player.load_and_play_music(selected_index)
             self._update_ui_for_new_track()
-            self._highlight_current_track() # Met en surbrillance le morceau nouvellement joué
+            self._highlight_current_track()
 
     def _highlight_current_track(self):
         """Met en surbrillance le morceau actuellement joué dans la Listbox."""
-        self.playlist_listbox.selection_clear(0, tk.END) # Efface toute sélection précédente
+        self.playlist_listbox.selection_clear(0, tk.END)
         if 0 <= self.player.current_track_index < len(self.player.playlist):
             self.playlist_listbox.selection_set(self.player.current_track_index)
             self.playlist_listbox.activate(self.player.current_track_index)
-            self.playlist_listbox.see(self.player.current_track_index) # S'assure que le morceau est visible
+            self.playlist_listbox.see(self.player.current_track_index)
 
     def on_progress_bar_click(self, event):
         """Gère le clic initial sur la barre de progression."""
@@ -120,18 +122,15 @@ class MusicAppGUI:
         if total_duration_ms == 0:
             return
 
-        # Met à jour l'affichage du temps immédiatement pour un retour visuel
         self.current_time_str.set(format_time(new_position_ms))
-        self.progress_bar["value"] = new_position_ms
+        self.progress_bar.set(new_position_ms / total_duration_ms)
 
-        # Demande au MusicPlayer de se positionner
         self.player.seek_music(new_position_ms)
 
-        # Force le bouton Play/Pause à afficher "Pause" si le seek a démarré la lecture
         if self.player.is_playing:
-            self.play_pause_button.config(text="⏯️ Pause")
+            self.play_pause_button.configure(text="⏯️ Pause")
         else:
-            self.play_pause_button.config(text="▶️ Play")
+            self.play_pause_button.configure(text="▶️ Play")
 
     def _update_ui_for_new_track(self):
         """Met à jour tous les éléments de l'UI liés au morceau actuel."""
@@ -140,8 +139,6 @@ class MusicAppGUI:
             metadata = track_info.get('metadata', {})
             duration_ms = track_info.get('duration_ms', 0)
 
-            # Mise à jour des labels de texte
-            # Si le titre est "Titre inconnu", utilise le nom du fichier.
             display_title = metadata.get('title', "Titre inconnu")
             if display_title == "Titre inconnu" and 'path' in track_info:
                 display_title = os.path.splitext(os.path.basename(track_info['path']))[0]
@@ -149,34 +146,26 @@ class MusicAppGUI:
             self.current_track_name.set(display_title)
             self.current_artist_name.set(metadata.get('artist', "Artiste inconnu"))
             self.current_album_name.set(metadata.get('album', "Album inconnu"))
-            # Utilise la fonction format_time de gui_logic.py pour l'affichage de l'UI
             self.total_time_str.set(format_time(duration_ms))
 
-            if duration_ms > 0:
-                self.progress_bar["maximum"] = duration_ms
-            else:
-                self.progress_bar["maximum"] = 1  # Empêche une division par zéro si durée 0
-
         else:
-            # Si la playlist est vide ou l'index est invalide
             self.current_track_name.set("Aucune musique chargée")
             self.current_artist_name.set("Artiste inconnu")
             self.current_album_name.set("Album inconnu")
             self.total_time_str.set("00:00")
-            self.progress_bar["maximum"] = 0  # Pas de progression
-            self.progress_bar["value"] = 0
+            self.progress_bar.set(0) # Mettre la barre de progression à zéro
 
         if self.player.is_playing and not self.player.is_paused:
-            self.play_pause_button.config(text="⏯️ Pause")
+            self.play_pause_button.configure(text="⏯️ Pause")
         else:
-            self.play_pause_button.config(text="▶️ Play")
+            self.play_pause_button.configure(text="▶️ Play")
 
         self._highlight_current_track()
 
     def toggle_play_pause(self):
         """Bascule entre lecture et pause."""
         self.player.toggle_pause()
-        self._update_ui_for_new_track() # Appelle la fonction de mise à jour centralisée
+        self._update_ui_for_new_track()
 
     def play_next(self):
         """Passe à la musique suivante."""
@@ -200,24 +189,22 @@ class MusicAppGUI:
         """
         previous_track_index = self.player.current_track_index
 
-        self.player.update() # Demande au lecteur Pygame de vérifier s'il doit passer au morceau suivant
+        self.player.update()
 
         if self.player.current_track_index != previous_track_index:
-            self._update_ui_for_new_track() # Mise à jour complète de l'UI si le morceau a changé
+            self._update_ui_for_new_track()
 
         current_pos_ms = self.player.get_current_time_ms()
         self.current_time_str.set(format_time(current_pos_ms))
-        self.progress_bar["value"] = current_pos_ms
+        
+        total_duration = self.player.get_current_track_duration_ms()
+        if total_duration > 0:
+            self.progress_bar.set(current_pos_ms / total_duration)
 
-        # Ré-planifie cet appel pour la prochaine mise à jour
         if self.player.is_playing or self.player.is_paused or pygame.mixer.music.get_busy():
             self.master.after(self.update_interval, self.update_player_status)
         else:
-            # Si aucune musique n'est active, on peut ralentir le taux de rafraîchissement
-            # ou arrêter complètement l'update si l'appli ne doit pas attendre de nouvelle action.
-            # Pour l'instant, on maintient un intervalle pour relancer si besoin.
             self.master.after(1000, self.update_player_status)
-
 
     def on_closing(self):
         """Gère la fermeture de l'application."""
