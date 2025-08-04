@@ -1,5 +1,6 @@
 import pygame
-import tkinter as tk
+import customtkinter as ctk
+
 
 from scripts.start_up.instructions import InstructionsDisplay, NOM, ANNEE
 from scripts.start_up.presentation import show_presentation_screen
@@ -32,7 +33,7 @@ if __name__ == "__main__":
     found_musics = music_finder.find_music_files()
 
     if found_musics:
-        root = tk.Tk()
+        root = ctk.CTk()
         app = MusicAppGUI(root, found_musics)
         root.mainloop()
     else:

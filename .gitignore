@@ -6,7 +6,6 @@
 __pycache__/
 *.pyc
 .pytest_cache/
-.vscode/
 
 # Fichiers de gestion de dépendances
 # Si tu n'utilises pas poetry, ces lignes ne sont pas nécessaires
