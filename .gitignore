@@ -10,3 +10,6 @@ __pycache__/
 
 # Fichiers d'anciens scripts gestion de dépendances
 others/
+build/
+dist/
+

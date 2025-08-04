@@ -3,10 +3,17 @@
 import customtkinter as ctk
 import tkinter as tk # Garder l'import pour la Listbox
 
-def create_main_window(master, title="Mon Lecteur Musical", geometry="500x350"):
+def create_main_window(master, title="Mon Lecteur Musical", geometry="500x350", icon_path="assets/icon/music_player_icon.ico"):
     """Configure la fenêtre principale de l'application."""
     master.title(title)
     master.geometry(geometry)
+    if icon_path:
+        try:
+            master.iconbitmap(icon_path)
+        except tk.TclError:
+            icon_path = None
+            master.iconbitmap(icon_path)
+            
     # master.resizable(False, False)
 
 def create_track_label(master, textvariable):
