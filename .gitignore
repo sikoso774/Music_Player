@@ -9,4 +9,4 @@ __pycache__/
 .pytest_cache/
 
 # Fichiers d'anciens scripts gestion de dépendances
-anciens_scripts/
+others/
