@@ -153,6 +153,12 @@ class MusicPlayer:
             'artist': "",
             'album': ""
         }
+    
+    def get_current_track_info(self):
+        """Retourne les informations (métadonnées) de la piste actuelle."""
+        if 0 <= self.current_track_index < len(self.playlist):
+            return self.playlist[self.current_track_index]
+        return None
 
     def format_time(self, ms):
         """

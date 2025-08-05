@@ -7,16 +7,15 @@ import pygame
 
 # Importe les classes et fonctions refactorisées
 from scripts.player.music_player_class import MusicPlayer
-from scripts.gui.gui_elements import (
-    create_main_window, create_track_label, create_time_frame, create_time_labels,
-    create_progress_bar, create_control_buttons_frame, create_control_buttons,
-    create_volume_slider, create_copyright_label,
-    create_playlist_frame, create_playlist_listbox,
-    create_album_label,create_artist_label
-)
+from scripts.gui.gui_elements import *
 # Utilise la fonction format_time de gui_logic.py pour l'affichage GUI
 from scripts.gui.gui_logic import format_time, calculate_seek_position
 from scripts.start_up.instructions import NOM, ANNEE # Importe les constantes pour le copyright
+
+# Pour faire apparaître les paroles
+import lyricsgenius
+from scripts.config import GENIUS_API_TOKEN
+import threading
 
 
 class MusicAppGUI:
@@ -47,6 +46,8 @@ class MusicAppGUI:
         self.time_label, self.total_time_label = create_time_labels(
             time_frame, self.current_time_str, self.total_time_str
         )
+        
+        
         self.progress_bar = create_progress_bar(time_frame)
         self.progress_bar.bind("<Button-1>", self.on_progress_bar_click)
         self.progress_bar.bind("<B1-Motion>", self.on_progress_bar_drag)
@@ -55,6 +56,9 @@ class MusicAppGUI:
         self.prev_button, self.play_pause_button, self.next_button = create_control_buttons(
             control_frame, self.play_previous, self.toggle_play_pause, self.play_next
         )
+        
+        self.lyrics_button = create_lyrics_button(control_frame, self.toggle_lyrics_window)
+        self.lyrics_button.pack(side="left", padx=5)
 
         self.volume_slider = create_volume_slider(master, self.set_volume,
                                                   initial_volume=int(pygame.mixer.music.get_volume() * 100))
@@ -62,7 +66,10 @@ class MusicAppGUI:
         playlist_frame = create_playlist_frame(master)
         self.playlist_listbox = create_playlist_listbox(playlist_frame, self.on_playlist_select)
         self._populate_playlist_listbox()
-
+        
+        # Fenêtre des lyrics
+        self.lyrics_window, self.lyrics_textbox = create_lyrics_window(master)
+        
         self.copyright_label = create_copyright_label(master, NOM, ANNEE)
 
         master.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -161,11 +168,77 @@ class MusicAppGUI:
             self.play_pause_button.configure(text="▶️ Play")
 
         self._highlight_current_track()
+        self._get_and_display_lyrics()
+    
+    def _get_and_display_lyrics(self):
+        """
+        Gère le processus de recherche des paroles en ligne ou dans le fichier
+        et les affiche dans le widget dédié.
+        """
+        self.lyrics_textbox.configure(state="normal")
+        self.lyrics_textbox.delete("1.0", "end")
+        self.lyrics_textbox.insert("end", "Recherche des paroles en cours...")
+        self.lyrics_textbox.configure(state="disabled")
+
+        current_track_info = self.player.get_current_track_info()
+        artist = current_track_info['metadata'].get('artist')
+        title = current_track_info['metadata'].get('title')
+
+        if not artist or not title:
+            # Si le titre ou l'artiste n'est pas détecté, on ne peut pas faire de recherche en ligne
+            self.lyrics_textbox.configure(state="normal")
+            self.lyrics_textbox.delete("1.0", "end")
+            self.lyrics_textbox.insert("end", "Impossible de trouver le titre ou l'artiste pour cette musique. Les paroles ne peuvent pas être recherchées en ligne.")
+            self.lyrics_textbox.configure(state="disabled")
+            return
+
+        # Lancer la recherche dans un thread pour ne pas bloquer l'interface
+        lyrics_thread = threading.Thread(target=self._search_lyrics_in_thread, args=(artist, title))
+        lyrics_thread.daemon = True # Le thread se fermera avec l'application
+        lyrics_thread.start()
+
+    def _search_lyrics_in_thread(self, artist, title):
+        """
+        Méthode exécutée dans un thread pour chercher les paroles
+        sans bloquer l'interface principale.
+        """
+        try:
+            genius = lyricsgenius.Genius(GENIUS_API_TOKEN, verbose=False)
+            song = genius.search_song(title, artist)
+            if song and song.lyrics:
+                lyrics = song.lyrics
+            else:
+                lyrics = "Paroles introuvables en ligne pour ce morceau."
+        except Exception as e:
+            lyrics = f"Erreur lors de la recherche des paroles: {e}"
+
+        # Mettre à jour l'interface depuis le thread principal via after()
+        self.master.after(0, self._display_lyrics_in_ui, lyrics)
+
+    def _display_lyrics_in_ui(self, lyrics):
+        """Met à jour le widget de texte des paroles dans le thread principal de l'UI."""
+        self.lyrics_textbox.configure(state="normal")
+        self.lyrics_textbox.delete("1.0", "end")
+        self.lyrics_textbox.insert("end", lyrics)
+        self.lyrics_textbox.configure(state="disabled")
+    
+    def get_current_track_info(self):
+        """Retourne les informations (métadonnées) de la piste actuelle."""
+        if 0 <= self.current_track_index < len(self.playlist):
+            return self.playlist[self.current_track_index]
+        return None
 
     def toggle_play_pause(self):
         """Bascule entre lecture et pause."""
         self.player.toggle_pause()
         self._update_ui_for_new_track()
+    
+    def toggle_lyrics_window(self):
+        """Affiche ou cache la fenêtre des paroles."""
+        if self.lyrics_window.state() == "withdrawn":
+            self.lyrics_window.deiconify()
+        else:
+            self.lyrics_window.withdraw()
 
     def play_next(self):
         """Passe à la musique suivante."""

@@ -65,15 +65,20 @@ def create_control_buttons_frame(master):
     return control_frame
 
 def create_control_buttons(parent_frame, play_previous_cmd, toggle_play_pause_cmd, play_next_cmd):
-    """Crée et retourne les boutons Précédent, Play/Pause, Suivant."""
-    prev_button = ctk.CTkButton(parent_frame, text="⏮️ Précédent", command=play_previous_cmd)
+    """Crée et retourne les boutons Précédent, Play/Pause, Suivant avec une largeur réduite."""
+    
+    # Largeur de 90 pixels, tu peux ajuster cette valeur
+    button_width = 90 
+
+    prev_button = ctk.CTkButton(parent_frame, text="⏮️ Précédent", command=play_previous_cmd, width=button_width)
     prev_button.pack(side="left", padx=5)
 
-    play_pause_button = ctk.CTkButton(parent_frame, text="▶️ Play", command=toggle_play_pause_cmd)
+    play_pause_button = ctk.CTkButton(parent_frame, text="▶️ Play", command=toggle_play_pause_cmd, width=button_width)
     play_pause_button.pack(side="left", padx=5)
 
-    next_button = ctk.CTkButton(parent_frame, text="Suivant ⏭️", command=play_next_cmd)
+    next_button = ctk.CTkButton(parent_frame, text="Suivant ⏭️", command=play_next_cmd, width=button_width)
     next_button.pack(side="left", padx=5)
+    
     return prev_button, play_pause_button, next_button
 
 def create_volume_slider(master, set_volume_cmd, initial_volume=50):
@@ -132,3 +137,25 @@ def create_playlist_listbox(parent_frame, select_callback):
     playlist_listbox.bind("<Double-Button-1>", select_callback)
     
     return playlist_listbox
+
+def create_lyrics_window(master):
+    """
+    Crée une nouvelle fenêtre Toplevel pour afficher les paroles.
+    Retourne la fenêtre et le widget CTkTextbox.
+    """
+    lyrics_window = ctk.CTkToplevel(master)
+    lyrics_window.title("Paroles")
+    lyrics_window.geometry("500x600")
+    # Pour éviter que la fenêtre de paroles ne se ferme à la destruction de la fenêtre principale
+    lyrics_window.withdraw() 
+    
+    lyrics_textbox = ctk.CTkTextbox(lyrics_window, wrap="word", font=("Arial", 12))
+    lyrics_textbox.pack(pady=10, padx=10, fill="both", expand=True)
+    lyrics_textbox.configure(state="disabled")
+    
+    return lyrics_window, lyrics_textbox
+
+def create_lyrics_button(master, command):
+    """Crée un bouton pour afficher/cacher les paroles."""
+    lyrics_button = ctk.CTkButton(master, text="Paroles", command=command, width=80)
+    return lyrics_button
