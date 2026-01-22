@@ -13,3 +13,4 @@ others/
 build/
 dist/
 scripts/config.py
+.python-version
