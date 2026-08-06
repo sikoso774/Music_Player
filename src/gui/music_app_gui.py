@@ -2,11 +2,13 @@
 
 import os
 import tkinter as tk # Garder l'import pour la Listbox
+from tkinter import messagebox
 
 import customtkinter as ctk
 
 # Importe les classes et fonctions refactorisées
 from src.player.music_player import MusicPlayer
+from src.player.vlc_setup import VlcNotAvailableError
 from src.gui.gui_elements import (
     create_main_window, create_track_label, create_artist_label, create_album_label,
     create_time_frame, create_time_labels, create_progress_bar,
@@ -22,10 +24,25 @@ class MusicAppGUI:
         self.master = master
         create_main_window(master)
 
-        self.player = MusicPlayer(found_musics)
+        try:
+            self.player = MusicPlayer(found_musics)
+        except VlcNotAvailableError:
+            print("Erreur : VLC n'est pas installé ou n'a pas pu être initialisé. "
+                  "L'application GUI ne démarrera pas.")
+            messagebox.showerror(
+                "VLC introuvable",
+                "VLC media player n'a pas été détecté sur cet ordinateur.\n\n"
+                "Ce lecteur a besoin de VLC pour fonctionner. Merci d'installer VLC "
+                "(gratuit) depuis :\nhttps://www.videolan.org/vlc/\n\n"
+                "puis de relancer l'application."
+            )
+            self.startup_failed = True
+            master.destroy()
+            return
 
         if not self.player.playlist:
             print("Erreur: La playlist est vide. L'application GUI ne démarrera pas correctement.")
+            self.startup_failed = True
             master.destroy()
             return
 

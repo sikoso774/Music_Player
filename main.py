@@ -11,6 +11,7 @@ if __name__ == "__main__":
     if found_musics:
         root = ctk.CTk()
         app = MusicAppGUI(root, found_musics)
-        root.mainloop()
+        if not getattr(app, "startup_failed", False):
+            root.mainloop()
     else:
         print("Aucune musique trouvée, le lecteur ne peut pas démarrer.")
