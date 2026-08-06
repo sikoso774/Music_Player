@@ -3,8 +3,6 @@
 import os
 import time
 
-import vlc
-
 # --- Fonctions d'action de VLC ---
 # Toutes prennent le lecteur (et l'instance, si besoin de créer un média) en
 # paramètre explicite plutôt que de dépendre d'un état global.
@@ -14,6 +12,7 @@ def _wait_until_playing(media_player, timeout_s=2.0):
     Attend que VLC ait effectivement démarré la lecture, pour qu'un set_time()
     juste après play() prenne bien effet (play() est asynchrone côté VLC).
     """
+    import vlc
     deadline = time.monotonic() + timeout_s
     while media_player.get_state() not in (vlc.State.Playing, vlc.State.Error, vlc.State.Ended):
         if time.monotonic() > deadline:
@@ -60,6 +59,7 @@ def seek_to(media_player, position_ms):
 
 def is_track_ended(media_player):
     """Indique si VLC a atteint la fin du morceau en cours de lecture."""
+    import vlc
     return media_player.get_state() == vlc.State.Ended
 
 def get_volume_percent(media_player):
