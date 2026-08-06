@@ -119,7 +119,7 @@ def show_presentation_screen(image_path, font_path_name, font_path_project,
         pygame.display.flip()
         clock.tick(60)
 
-    # Réinitialise la fenêtre Pygame pour la taille standard de l'application GUI
-    # (cela peut être géré par main.py juste avant de lancer la GUI)
-    pygame.display.set_mode((500, 350))
-    pygame.display.set_caption("Mon Lecteur Musical")
+    # Ferme complètement l'affichage Pygame : la suite de l'app est pilotée par
+    # CustomTkinter et n'a plus besoin d'une fenêtre Pygame. Le module mixer
+    # (audio) est indépendant et continue de fonctionner normalement.
+    pygame.display.quit()

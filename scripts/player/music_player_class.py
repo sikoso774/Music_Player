@@ -15,7 +15,7 @@ class MusicPlayer:
     """
 
     def __init__(self, playlist):
-        self.screen = initialize_pygame_mixer()  # Initialise Pygame et le mixeur
+        initialize_pygame_mixer()  # Initialise le mixeur Pygame
         self.playlist = prepare_playlist_with_durations(playlist)
 
         self.current_track_index = 0
