@@ -7,13 +7,7 @@ import pygame
 
 # Importe les classes et fonctions refactorisées
 from scripts.player.music_player_class import MusicPlayer
-from scripts.gui.gui_elements import (
-    create_main_window, create_track_label, create_time_frame, create_time_labels,
-    create_progress_bar, create_control_buttons_frame, create_control_buttons,
-    create_volume_slider, create_copyright_label,
-    create_playlist_frame, create_playlist_listbox,
-    create_album_label,create_artist_label
-)
+from scripts.gui.gui_elements import *
 # Utilise la fonction format_time de gui_logic.py pour l'affichage GUI
 from scripts.gui.gui_logic import format_time, calculate_seek_position
 from scripts.start_up.instructions import NOM, ANNEE # Importe les constantes pour le copyright
@@ -47,6 +41,8 @@ class MusicAppGUI:
         self.time_label, self.total_time_label = create_time_labels(
             time_frame, self.current_time_str, self.total_time_str
         )
+        
+        
         self.progress_bar = create_progress_bar(time_frame)
         self.progress_bar.bind("<Button-1>", self.on_progress_bar_click)
         self.progress_bar.bind("<B1-Motion>", self.on_progress_bar_drag)
@@ -55,7 +51,7 @@ class MusicAppGUI:
         self.prev_button, self.play_pause_button, self.next_button = create_control_buttons(
             control_frame, self.play_previous, self.toggle_play_pause, self.play_next
         )
-
+        
         self.volume_slider = create_volume_slider(master, self.set_volume,
                                                   initial_volume=int(pygame.mixer.music.get_volume() * 100))
 
@@ -161,6 +157,12 @@ class MusicAppGUI:
             self.play_pause_button.configure(text="▶️ Play")
 
         self._highlight_current_track()
+
+    def get_current_track_info(self):
+        """Retourne les informations (métadonnées) de la piste actuelle."""
+        if 0 <= self.current_track_index < len(self.playlist):
+            return self.playlist[self.current_track_index]
+        return None
 
     def toggle_play_pause(self):
         """Bascule entre lecture et pause."""
