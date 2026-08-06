@@ -43,9 +43,13 @@ class MusicAppGUI:
         )
         
         
+        self._pending_seek_ms = None
+        self._is_seeking = False
+
         self.progress_bar = create_progress_bar(time_frame)
-        self.progress_bar.bind("<Button-1>", self.on_progress_bar_click)
+        self.progress_bar.bind("<Button-1>", self.on_progress_bar_press)
         self.progress_bar.bind("<B1-Motion>", self.on_progress_bar_drag)
+        self.progress_bar.bind("<ButtonRelease-1>", self.on_progress_bar_release)
 
         control_frame = create_control_buttons_frame(master)
         self.prev_button, self.play_pause_button, self.next_button = create_control_buttons(
@@ -99,34 +103,42 @@ class MusicAppGUI:
             self.playlist_listbox.activate(self.player.current_track_index)
             self.playlist_listbox.see(self.player.current_track_index)
 
-    def on_progress_bar_click(self, event):
-        """Gère le clic initial sur la barre de progression."""
-        self._set_music_position_from_progressbar(event.x)
+    def on_progress_bar_press(self, event):
+        """Démarre l'aperçu de position au clic sur la barre de progression."""
+        self._is_seeking = True
+        self._preview_seek_position(event.x)
 
     def on_progress_bar_drag(self, event):
-        """Gère le glissement (drag) sur la barre de progression."""
-        self._set_music_position_from_progressbar(event.x)
+        """Met à jour l'aperçu pendant le glissement, sans recharger la musique."""
+        self._preview_seek_position(event.x)
 
-    def _set_music_position_from_progressbar(self, click_x):
+    def on_progress_bar_release(self, event):
+        """Applique le déplacement une fois le clic/glissement terminé."""
+        if self._pending_seek_ms is not None:
+            self.player.seek_music(self._pending_seek_ms)
+            self._pending_seek_ms = None
+
+            if self.player.is_playing:
+                self.play_pause_button.configure(text="⏯️ Pause")
+            else:
+                self.play_pause_button.configure(text="▶️ Play")
+
+        self._is_seeking = False
+
+    def _preview_seek_position(self, click_x):
         """
-        Calcule la nouvelle position de la musique basée sur la position du clic/glissement
-        sur la barre de progression et appelle la fonction seek.
+        Met à jour l'affichage (temps écoulé + barre) selon la position du clic/glissement.
+        Le morceau n'est rechargé qu'au relâchement du clic (voir on_progress_bar_release),
+        pour éviter de recharger/relancer le fichier audio à chaque pixel parcouru.
         """
         total_duration_ms = self.player.get_current_track_duration_ms()
-        new_position_ms = calculate_seek_position(click_x, self.progress_bar, total_duration_ms)
-
         if total_duration_ms == 0:
             return
 
+        new_position_ms = calculate_seek_position(click_x, self.progress_bar, total_duration_ms)
+        self._pending_seek_ms = new_position_ms
         self.current_time_str.set(format_time(new_position_ms))
         self.progress_bar.set(new_position_ms / total_duration_ms)
-
-        self.player.seek_music(new_position_ms)
-
-        if self.player.is_playing:
-            self.play_pause_button.configure(text="⏯️ Pause")
-        else:
-            self.play_pause_button.configure(text="▶️ Play")
 
     def _update_ui_for_new_track(self):
         """Met à jour tous les éléments de l'UI liés au morceau actuel."""
@@ -196,12 +208,13 @@ class MusicAppGUI:
         if self.player.current_track_index != previous_track_index:
             self._update_ui_for_new_track()
 
-        current_pos_ms = self.player.get_current_time_ms()
-        self.current_time_str.set(format_time(current_pos_ms))
-        
-        total_duration = self.player.get_current_track_duration_ms()
-        if total_duration > 0:
-            self.progress_bar.set(current_pos_ms / total_duration)
+        if not self._is_seeking:
+            current_pos_ms = self.player.get_current_time_ms()
+            self.current_time_str.set(format_time(current_pos_ms))
+
+            total_duration = self.player.get_current_track_duration_ms()
+            if total_duration > 0:
+                self.progress_bar.set(current_pos_ms / total_duration)
 
         if self.player.is_playing or self.player.is_paused or pygame.mixer.music.get_busy():
             self.master.after(self.update_interval, self.update_player_status)
