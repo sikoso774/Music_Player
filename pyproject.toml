@@ -1,7 +1,7 @@
 [project]
-name = "version-3"
+name = "music-player"
 version = "0.1.0"
-description = "Add your description here"
+description = "Lecteur de musique de bureau combinant un moteur audio Pygame et une interface CustomTkinter."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
