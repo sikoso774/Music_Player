@@ -10,7 +10,7 @@ from scripts.gui.music_app_gui_class import MusicAppGUI
 # ...
 # Initialisation de Pygame au début de main.py si tu as une présentation Pygame
 pygame.init()
-pygame.mixer.init()
+
 # ...
 
 if __name__ == "__main__":

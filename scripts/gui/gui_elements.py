@@ -3,10 +3,17 @@
 import customtkinter as ctk
 import tkinter as tk # Garder l'import pour la Listbox
 
-def create_main_window(master, title="Mon Lecteur Musical", geometry="500x350"):
+def create_main_window(master, title="Mon Lecteur Musical", geometry="500x350", icon_path="assets/icon/music_player_icon.ico"):
     """Configure la fenêtre principale de l'application."""
     master.title(title)
     master.geometry(geometry)
+    if icon_path:
+        try:
+            master.iconbitmap(icon_path)
+        except tk.TclError:
+            icon_path = None
+            master.iconbitmap(icon_path)
+            
     # master.resizable(False, False)
 
 def create_track_label(master, textvariable):
@@ -58,15 +65,20 @@ def create_control_buttons_frame(master):
     return control_frame
 
 def create_control_buttons(parent_frame, play_previous_cmd, toggle_play_pause_cmd, play_next_cmd):
-    """Crée et retourne les boutons Précédent, Play/Pause, Suivant."""
-    prev_button = ctk.CTkButton(parent_frame, text="⏮️ Précédent", command=play_previous_cmd)
+    """Crée et retourne les boutons Précédent, Play/Pause, Suivant avec une largeur réduite."""
+    
+    # Largeur de 90 pixels, tu peux ajuster cette valeur
+    button_width = 90 
+
+    prev_button = ctk.CTkButton(parent_frame, text="⏮️ Précédent", command=play_previous_cmd, width=button_width)
     prev_button.pack(side="left", padx=5)
 
-    play_pause_button = ctk.CTkButton(parent_frame, text="▶️ Play", command=toggle_play_pause_cmd)
+    play_pause_button = ctk.CTkButton(parent_frame, text="▶️ Play", command=toggle_play_pause_cmd, width=button_width)
     play_pause_button.pack(side="left", padx=5)
 
-    next_button = ctk.CTkButton(parent_frame, text="Suivant ⏭️", command=play_next_cmd)
+    next_button = ctk.CTkButton(parent_frame, text="Suivant ⏭️", command=play_next_cmd, width=button_width)
     next_button.pack(side="left", padx=5)
+    
     return prev_button, play_pause_button, next_button
 
 def create_volume_slider(master, set_volume_cmd, initial_volume=50):
@@ -125,3 +137,4 @@ def create_playlist_listbox(parent_frame, select_callback):
     playlist_listbox.bind("<Double-Button-1>", select_callback)
     
     return playlist_listbox
+
