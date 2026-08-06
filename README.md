@@ -1,24 +1,27 @@
-# Pygame Music Player
+# Music Player
 
-A desktop music player combining a Pygame audio engine with a CustomTkinter GUI: loads audio files from a local folder and plays them with full transport controls.
+A desktop music player combining a VLC audio engine with a CustomTkinter GUI: loads audio files from a local folder and plays them with full transport controls.
 
 ## Features
 - Load songs from a local folder
-- Play, pause, skip, and seek (click or drag the progress bar)
-- Display track/artist/album info and playback progress in a CustomTkinter GUI (Pygame runs headless as the audio engine only — no visible Pygame window once the app is up)
+- Play, pause, skip, and seek (click or drag the progress bar) — seeking is instant, no reload of the file
+- Display track/artist/album info and playback progress in a CustomTkinter GUI
+- Broad format support via VLC (mp3, wav, ogg, opus, flac, m4a, aac, wma, aiff, and more)
 
 ## Requirements
 - Python >= 3.12
 - [uv](https://docs.astral.sh/uv/) for dependency management
-- Dependencies (see `pyproject.toml`): `pygame-ce`, `customtkinter`, `mutagen`, `pillow`
+- [VLC media player](https://www.videolan.org/vlc/) installed on the machine (provides libVLC, loaded at runtime by `python-vlc`)
+- Dependencies (see `pyproject.toml`): `python-vlc`, `customtkinter`, `mutagen`, `pillow`
 
 ## Setup
-1. Install [uv](https://docs.astral.sh/uv/getting-started/installation/) if not already installed.
-2. Install dependencies:
+1. Install [VLC](https://www.videolan.org/vlc/) if not already installed.
+2. Install [uv](https://docs.astral.sh/uv/getting-started/installation/) if not already installed.
+3. Install dependencies:
    ```bash
    uv sync
    ```
-3. Place audio files in a `Musiques` folder next to the project, or in your OS "Music" folder — the app searches both (see `CLAUDE.md` for the exact lookup order).
+4. Place audio files in a `Musiques` folder next to the project, or in your OS "Music" folder — the app searches both (see `CLAUDE.md` for the exact lookup order).
 
 ## Usage
 ```bash
@@ -26,6 +29,6 @@ uv run main.py
 ```
 
 ## Notes
-- Supported audio formats are filtered by `AUDIO_FORMATS` in `src/player/audio_info.py`: `.mp3`, `.wav`, `.ogg`, `.flac`.
+- Audio *discovery* is filtered by `AUDIO_FORMATS` in `src/player/audio_info.py`: `.mp3`, `.wav`, `.ogg`, `.opus`, `.flac`, `.m4a`, `.aac`, `.wma`, `.aiff`, `.aif`. Actual playback (VLC) and tag reading (`mutagen`) support more than this list filters for.
 - Track duration and tags (title/artist/album) are read via `mutagen`.
 - Ensure audio files are accessible and not corrupted.

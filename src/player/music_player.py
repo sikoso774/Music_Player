@@ -1,28 +1,26 @@
 # src/player/music_player.py
 from src.time_format import format_time
 
-from .audio_info import prepare_playlist_with_durations, get_audio_info
-from .pygame_setup import initialize_pygame_mixer, quit_pygame_mixer
-# Importe la fonction renommée ici
-from .player_logic import load_and_play, pause_pygame_music, unpause_pygame_music, stop_current_music, \
-    get_pygame_playback_time_ms
+from .audio_info import prepare_playlist_with_durations
+from .vlc_setup import create_vlc_player, quit_vlc_player
+from .player_logic import load_and_play, pause_music, unpause_music, stop_current_music, \
+    seek_to, is_track_ended, get_playback_time_ms, get_volume_percent, set_volume_percent
 
 
 class MusicPlayer:
     """
     Gère la lecture, la pause, la reprise et le changement de musiques
-    en utilisant Pygame.mixer et en maintenant un état précis.
+    en utilisant VLC et en maintenant un état précis.
     """
 
     def __init__(self, playlist):
-        initialize_pygame_mixer()  # Initialise le mixeur Pygame
+        # Instance VLC et lecteur média dédiés à ce MusicPlayer (pas d'état global).
+        self._vlc_instance, self._media_player = create_vlc_player()
         self.playlist = prepare_playlist_with_durations(playlist)
 
         self.current_track_index = 0
         self.is_paused = False  # Indique si le lecteur est en état de pause
         self.is_playing = False  # Indique si une musique est chargée et potentiellement en lecture/pause
-        # Nouvelle variable pour la position de départ réelle
-        self._start_position_ms_on_play = 0
 
         if not self.playlist:
             print("Attention : La playlist est vide. Aucune musique ne pourra être jouée.")
@@ -47,11 +45,7 @@ class MusicPlayer:
         track_info = self.playlist[self.current_track_index]
         track_path = track_info['path']
 
-        # Stocke la position de départ réelle
-        self._start_position_ms_on_play = start_pos_ms
-
-        # Passe la position en secondes à load_and_play
-        if load_and_play(track_path, start_pos_ms / 1000.0):
+        if load_and_play(self._vlc_instance, self._media_player, track_path, start_pos_ms):
             self.is_playing = True
             self.is_paused = False  # La musique est en lecture, pas en pause
         else:
@@ -61,7 +55,7 @@ class MusicPlayer:
     def toggle_pause(self):
         """
         Bascule l'état de pause/lecture de la musique.
-        Gère les variables d'état internes et appelle les fonctions Pygame appropriées.
+        Gère les variables d'état internes et appelle les fonctions VLC appropriées.
         """
         if not self.is_playing:
             if self.playlist:
@@ -69,10 +63,10 @@ class MusicPlayer:
             return
 
         if self.is_paused:
-            unpause_pygame_music()
+            unpause_music(self._media_player)
             self.is_paused = False
         else:
-            pause_pygame_music()
+            pause_music(self._media_player)
             self.is_paused = True
 
     def play_next_music(self):
@@ -82,8 +76,6 @@ class MusicPlayer:
             return
 
         self.current_track_index = (self.current_track_index + 1) % len(self.playlist)
-        # Réinitialise la position de départ pour le nouveau morceau
-        self._start_position_ms_on_play = 0
         self.load_and_play_music(self.current_track_index)
 
     def play_previous_music(self):
@@ -93,14 +85,12 @@ class MusicPlayer:
             return
 
         self.current_track_index = (self.current_track_index - 1 + len(self.playlist)) % len(self.playlist)
-        # Réinitialise la position de départ pour le nouveau morceau
-        self._start_position_ms_on_play = 0
         self.load_and_play_music(self.current_track_index)
 
     def seek_music(self, position_ms):
         """
         Déplace la lecture à une position spécifique en millisecondes.
-        Si la musique n'est pas en lecture, elle la charge et la lance à cette position.
+        Si la musique n'est pas déjà chargée, elle la charge et la lance à cette position.
         """
         print(f"Déplacement à {position_ms / 1000.0:.2f}s.")
         if not self.playlist:
@@ -114,18 +104,17 @@ class MusicPlayer:
 
         new_position_ms = max(0, min(position_ms, current_duration_ms - 100))  # 100ms de marge
 
-        # La position de départ est maintenant new_position_ms
-        self.load_and_play_music(track_index=self.current_track_index, start_pos_ms=new_position_ms)
+        if self.is_playing:
+            # Le morceau est déjà chargé : VLC permet de sauter directement,
+            # sans recharger le fichier.
+            seek_to(self._media_player, new_position_ms)
+        else:
+            self.load_and_play_music(track_index=self.current_track_index, start_pos_ms=new_position_ms)
 
     def get_current_time_ms(self):
-        """
-        Retourne le temps de lecture actuel en millisecondes, en tenant compte
-        de la position de départ réelle.
-        """
+        """Retourne le temps de lecture actuel en millisecondes."""
         if self.is_playing:
-            # Temps total = position de départ + temps écoulé depuis le dernier play().
-            # Valable en lecture comme en pause : Pygame fige get_pos() à la pause.
-            return self._start_position_ms_on_play + get_pygame_playback_time_ms()
+            return get_playback_time_ms(self._media_player)
         return 0 # Si pas en lecture du tout
 
     def get_current_track_duration_ms(self):
@@ -147,12 +136,20 @@ class MusicPlayer:
             'artist': "",
             'album': ""
         }
-    
+
     def get_current_track_info(self):
         """Retourne les informations (métadonnées) de la piste actuelle."""
         if 0 <= self.current_track_index < len(self.playlist):
             return self.playlist[self.current_track_index]
         return None
+
+    def get_volume(self):
+        """Retourne le volume actuel (0-100)."""
+        return get_volume_percent(self._media_player)
+
+    def set_volume(self, volume_percent):
+        """Définit le volume (0-100)."""
+        set_volume_percent(self._media_player, volume_percent)
 
     def update(self):
         """
@@ -172,14 +169,14 @@ class MusicPlayer:
         # Utilise '\r' pour surécrire la ligne actuelle et '\n' pour un nouveau message
         print(f"Temps actuel: {current_time_formatted} / {total_time_formatted}", end='\r')
 
-        if total_duration_ms > 0 and current_pos_abs_ms >= total_duration_ms - 50:  # 50ms de marge
-            print("\nMusique terminée détectée par temps, passage à la suivante...")
+        if is_track_ended(self._media_player):
+            print("\nMusique terminée, passage à la suivante...")
             self.play_next_music()
             return True
 
         return False
 
     def quit(self):
-        """Arrête le mixeur Pygame et libère les ressources."""
-        stop_current_music()
-        quit_pygame_mixer()
+        """Arrête le lecteur VLC et libère les ressources."""
+        stop_current_music(self._media_player)
+        quit_vlc_player(self._vlc_instance, self._media_player)

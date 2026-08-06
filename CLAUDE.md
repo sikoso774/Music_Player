@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-A desktop music player combining Pygame (for audio playback via `pygame.mixer`) with CustomTkinter (for the GUI). Pygame is used purely as a headless audio engine — no Pygame window/display code exists anywhere in the app.
+A desktop music player combining a VLC audio engine (via `python-vlc`/libVLC) with CustomTkinter (for the GUI). Requires VLC to be installed on the machine (libVLC is loaded at runtime, not bundled).
 
 ## Commands
 
@@ -26,7 +26,7 @@ The app searches for playable audio in this order and uses the first non-empty r
 1. A `Musiques` folder next to the script/executable
 2. The user's OS "Music" folder (`~/Music`)
 
-Supported formats: `.mp3`, `.wav`, `.ogg`, `.flac`.
+Discovery is filtered by `AUDIO_FORMATS` in `src/player/audio_info.py`: `.mp3`, `.wav`, `.ogg`, `.opus`, `.flac`, `.m4a`, `.aac`, `.wma`, `.aiff`, `.aif`. Actual playback (VLC) and tag reading (`mutagen.File` auto-detection) support more than this list filters for — extend the tuple to widen discovery to other formats either supports.
 
 ## Architecture
 
@@ -36,11 +36,11 @@ Startup sequence in `main.py`:
 
 ### Package layout (`src/`)
 
-- **`player/`** — audio engine, no UI dependencies beyond Pygame:
-  - `pygame_setup.py` — init/teardown of `pygame.mixer` only (no display/window code).
-  - `player_logic.py` — thin wrappers around `pygame.mixer.music` calls (load/play/pause/stop, position query).
-  - `audio_info.py` — uses `mutagen` to read duration/title/artist/album per format (MP3/WAV/OGG/FLAC), with ID3-less-MP3 fallback. Also the canonical home of the `AUDIO_FORMATS` tuple (imported by `search_musics.py`).
-  - `music_player.py` — `MusicPlayer`, the stateful facade over the above. Tracks `current_track_index`, `is_playing`/`is_paused`, and reconstructs elapsed playback time itself (`_start_position_ms_on_play` + Pygame's `get_pos()`) since Pygame doesn't expose absolute seek position. All playback/seek/next/prev operations funnel through here.
+- **`player/`** — audio engine, no UI dependencies beyond `python-vlc`:
+  - `vlc_setup.py` — init/teardown of a module-level VLC `Instance`/`MediaPlayer` pair (`initialize_vlc_player()`/`quit_vlc_player()`), plus accessors (`get_media_player()`/`get_vlc_instance()`) used by `player_logic.py`.
+  - `player_logic.py` — thin wrappers around the VLC `MediaPlayer` (load/play/pause/stop, direct seek via `set_time()`, volume, end-of-track detection via `get_state() == vlc.State.Ended`). `load_and_play()` briefly polls for the `Playing` state before seeking, since VLC's `play()` is asynchronous and an immediate `set_time()` can otherwise be dropped.
+  - `audio_info.py` — uses `mutagen.File(path, easy=True)` (format auto-detection) to read duration/title/artist/album across any format mutagen supports, no per-format branching needed. Also the canonical home of the `AUDIO_FORMATS` tuple (imported by `search_musics.py`).
+  - `music_player.py` — `MusicPlayer`, the stateful facade over the above. Tracks `current_track_index`, `is_playing`/`is_paused`. Unlike the old Pygame engine, VLC exposes an absolute playback position directly (`get_time()`/`set_time()`), so no manual position bookkeeping is needed — `seek_music()` seeks in place on an already-loaded track instead of reloading it. All playback/seek/next/prev operations funnel through here.
 - **`gui/`** — CustomTkinter presentation layer, holds no playback state of its own:
   - `gui_elements.py` — pure widget-construction functions (labels, buttons, progress bar, playlist listbox). No logic, just layout. Also holds the copyright author/year defaults (`create_copyright_label`).
   - `gui_logic.py` — pure helper functions (`calculate_seek_position` for translating a progress-bar click into a track position; re-exports `format_time` from `src/time_format.py`).
@@ -48,9 +48,6 @@ Startup sequence in `main.py`:
 - **`search_musics.py`** — `MusicFinder`, the one-shot startup music discovery step (see search order above). Not touched again after `main.py`'s setup phase.
 - **`time_format.py`** — single shared `format_time(ms)` helper (MM:SS), used by both `player/` and `gui/` to avoid either package depending on the other.
 
-### Key state-management detail
-
-Pygame's mixer has no reliable "current absolute position" API when seeking mid-track — `MusicPlayer` compensates by remembering the position it started playback from (`_start_position_ms_on_play`) and adding Pygame's own `get_pos()` (time since that `play()` call). Any change to seek/play/pause logic must preserve this invariant or the progress bar and end-of-track detection will drift.
 
 ### Legacy code
 
