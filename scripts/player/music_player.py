@@ -1,11 +1,11 @@
-# scripts/player/music_player_class.py
-import pygame
+# scripts/player/music_player.py
+from scripts.time_format import format_time
+
 from .audio_info import prepare_playlist_with_durations, get_audio_info
 from .pygame_setup import initialize_pygame_mixer, quit_pygame_mixer
 # Importe la fonction renommée ici
 from .player_logic import load_and_play, pause_pygame_music, unpause_pygame_music, stop_current_music, \
     get_pygame_playback_time_ms
-import os
 
 
 class MusicPlayer:
@@ -122,17 +122,11 @@ class MusicPlayer:
         Retourne le temps de lecture actuel en millisecondes, en tenant compte
         de la position de départ réelle.
         """
-        if self.is_playing and not self.is_paused:
-            # Temps écoulé depuis le dernier play() par Pygame
-            pygame_pos = get_pygame_playback_time_ms()
-            # Temps total = position de départ + temps écoulé depuis le dernier play()
-            return self._start_position_ms_on_play + pygame_pos
-        elif self.is_playing and self.is_paused:
-            # Si en pause, la position est la dernière position connue
-            # (get_pygame_playback_time_ms() donnera la position au moment de la pause + _start_position_ms_on_play)
+        if self.is_playing:
+            # Temps total = position de départ + temps écoulé depuis le dernier play().
+            # Valable en lecture comme en pause : Pygame fige get_pos() à la pause.
             return self._start_position_ms_on_play + get_pygame_playback_time_ms()
-        else:
-            return 0 # Si pas en lecture du tout
+        return 0 # Si pas en lecture du tout
 
     def get_current_track_duration_ms(self):
         """Retourne la durée totale du morceau en cours en millisecondes."""
@@ -160,15 +154,6 @@ class MusicPlayer:
             return self.playlist[self.current_track_index]
         return None
 
-    def format_time(self, ms):
-        """
-        Convertit les millisecondes en format de temps MM:SS.
-        """
-        total_seconds = int(ms / 1000)
-        minutes = total_seconds // 60
-        seconds = total_seconds % 60
-        return f"{minutes:02d}:{seconds:02d}"
-
     def update(self):
         """
         Vérifie si la musique actuelle est terminée et passe à la suivante si nécessaire.
@@ -182,8 +167,8 @@ class MusicPlayer:
         total_duration_ms = self.get_current_track_duration_ms()
 
         # Affichage du temps en console
-        current_time_formatted = self.format_time(current_pos_abs_ms)
-        total_time_formatted = self.format_time(total_duration_ms)
+        current_time_formatted = format_time(current_pos_abs_ms)
+        total_time_formatted = format_time(total_duration_ms)
         # Utilise '\r' pour surécrire la ligne actuelle et '\n' pour un nouveau message
         print(f"Temps actuel: {current_time_formatted} / {total_time_formatted}", end='\r')
 

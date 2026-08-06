@@ -1,12 +1,5 @@
 # scripts/gui/gui_logic.py
-import math
-
-def format_time(ms):
-    """Convertit les millisecondes en format MM:SS."""
-    seconds = ms // 1000
-    minutes = seconds // 60
-    seconds %= 60
-    return f"{minutes:02d}:{seconds:02d}"
+from scripts.time_format import format_time
 
 def calculate_seek_position(event_x, progress_bar_widget, total_duration_ms):
     """

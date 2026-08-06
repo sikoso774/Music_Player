@@ -1,8 +1,11 @@
 # scripts/start_up/presentation.py
 # Gère l'écran de présentation au démarrage.
 
-import pygame
 import os
+import sys
+
+import pygame
+
 # Importe NOM depuis le fichier où il est défini (maintenant dans start_up/instructions)
 from .instructions import NOM
 
@@ -20,19 +23,12 @@ def show_presentation_screen(image_path, font_path_name, font_path_project,
         project_name (str): Le nom du projet (par défaut "Mon Lecteur Musical").
         duration_ms (int): La durée totale de l'écran de présentation en millisecondes.
     """
-    # Utilise l'écran Pygame déjà initialisé ou en crée un temporaire si nécessaire
     try:
-        screen = pygame.display.get_surface()
-        if screen is None:
-            print("Aucun écran Pygame trouvé, en créant un temporaire pour la présentation.")
-            screen = pygame.display.set_mode((800, 600), pygame.HIDDEN) # Utilise HIDDEN pour ne pas afficher la fenêtre
-            pygame.display.set_caption(project_name)
+        screen = pygame.display.set_mode((800, 600))
+        pygame.display.set_caption(project_name)
     except pygame.error:
-        print("Erreur Pygame lors de la récupération/création de l'écran pour la présentation.")
+        print("Erreur Pygame lors de la création de l'écran pour la présentation.")
         return
-
-    pygame.display.set_mode((800, 600)) # Définit la taille visible après la présentation
-    pygame.display.set_caption(project_name)
 
     white = (255, 255, 255)
     black = (0, 0, 0)
@@ -43,7 +39,7 @@ def show_presentation_screen(image_path, font_path_name, font_path_project,
     try:
         # Chemin relatif : depuis scripts/start_up/ presentation.py vers le dossier racine du projet
         base_path = os.path.dirname(os.path.abspath(__file__))
-        # Remonte deux niveaux pour aller de scripts/start_up à Music_Player_V2
+        # Remonte deux niveaux pour aller de scripts/start_up à la racine du projet
         image_full_path = os.path.join(base_path, '..', '..', image_path)
 
         image = pygame.image.load(image_full_path).convert_alpha()
@@ -93,7 +89,7 @@ def show_presentation_screen(image_path, font_path_name, font_path_project,
             if event.type == pygame.QUIT:
                 running_presentation = False # Permet de sortir proprement de la boucle
                 pygame.quit()
-                exit() # Termine l'application
+                sys.exit() # Termine l'application
 
         screen.fill(black)
 

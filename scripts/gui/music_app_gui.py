@@ -1,13 +1,19 @@
-# scripts/gui/music_app_gui_class.py
+# scripts/gui/music_app_gui.py
+
+import os
+import tkinter as tk # Garder l'import pour la Listbox
 
 import customtkinter as ctk
-import tkinter as tk # Garder l'import pour la Listbox
-import os
 import pygame
 
 # Importe les classes et fonctions refactorisées
-from scripts.player.music_player_class import MusicPlayer
-from scripts.gui.gui_elements import *
+from scripts.player.music_player import MusicPlayer
+from scripts.gui.gui_elements import (
+    create_main_window, create_track_label, create_artist_label, create_album_label,
+    create_time_frame, create_time_labels, create_progress_bar,
+    create_control_buttons_frame, create_control_buttons, create_volume_slider,
+    create_playlist_frame, create_playlist_listbox, create_copyright_label,
+)
 # Utilise la fonction format_time de gui_logic.py pour l'affichage GUI
 from scripts.gui.gui_logic import format_time, calculate_seek_position
 from scripts.start_up.instructions import NOM, ANNEE # Importe les constantes pour le copyright
@@ -169,12 +175,6 @@ class MusicAppGUI:
             self.play_pause_button.configure(text="▶️ Play")
 
         self._highlight_current_track()
-
-    def get_current_track_info(self):
-        """Retourne les informations (métadonnées) de la piste actuelle."""
-        if 0 <= self.current_track_index < len(self.playlist):
-            return self.playlist[self.current_track_index]
-        return None
 
     def toggle_play_pause(self):
         """Bascule entre lecture et pause."""

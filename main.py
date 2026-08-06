@@ -1,17 +1,12 @@
 import pygame
 import customtkinter as ctk
 
-
-from scripts.start_up.instructions import InstructionsDisplay, NOM, ANNEE
+from scripts.start_up.instructions import InstructionsDisplay
 from scripts.start_up.presentation import show_presentation_screen
-from scripts.start_up.shearch_musics import MusicFinder
-from scripts.gui.music_app_gui_class import MusicAppGUI
+from scripts.start_up.search_musics import MusicFinder
+from scripts.gui.music_app_gui import MusicAppGUI
 
-# ...
-# Initialisation de Pygame au début de main.py si tu as une présentation Pygame
 pygame.init()
-
-# ...
 
 if __name__ == "__main__":
     # Afficher les instructions
@@ -19,7 +14,7 @@ if __name__ == "__main__":
     instructions_manager.display_instructions()
 
     # Afficher l'écran de présentation (ajuste les chemins d'image et de police)
-    # Les chemins sont maintenant relatifs à Music_Player_V2/
+    # Les chemins sont relatifs à la racine du projet
     show_presentation_screen(
         image_path='assets/images/Zoléni_Cyberpunk.jpg', # Exemple de chemin depuis la racine du projet
         font_path_name='assets/fonts/MINDCONTROL.ttf',
