@@ -138,24 +138,3 @@ def create_playlist_listbox(parent_frame, select_callback):
     
     return playlist_listbox
 
-def create_lyrics_window(master):
-    """
-    Crée une nouvelle fenêtre Toplevel pour afficher les paroles.
-    Retourne la fenêtre et le widget CTkTextbox.
-    """
-    lyrics_window = ctk.CTkToplevel(master)
-    lyrics_window.title("Paroles")
-    lyrics_window.geometry("500x600")
-    # Pour éviter que la fenêtre de paroles ne se ferme à la destruction de la fenêtre principale
-    lyrics_window.withdraw() 
-    
-    lyrics_textbox = ctk.CTkTextbox(lyrics_window, wrap="word", font=("Arial", 12))
-    lyrics_textbox.pack(pady=10, padx=10, fill="both", expand=True)
-    lyrics_textbox.configure(state="disabled")
-    
-    return lyrics_window, lyrics_textbox
-
-def create_lyrics_button(master, command):
-    """Crée un bouton pour afficher/cacher les paroles."""
-    lyrics_button = ctk.CTkButton(master, text="Paroles", command=command, width=80)
-    return lyrics_button
