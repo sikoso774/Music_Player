@@ -4,7 +4,6 @@ import os
 import tkinter as tk # Garder l'import pour la Listbox
 
 import customtkinter as ctk
-import pygame
 
 # Importe les classes et fonctions refactorisées
 from src.player.music_player import MusicPlayer
@@ -62,7 +61,7 @@ class MusicAppGUI:
         )
         
         self.volume_slider = create_volume_slider(master, self.set_volume,
-                                                  initial_volume=int(pygame.mixer.music.get_volume() * 100))
+                                                  initial_volume=self.player.get_volume())
 
         playlist_frame = create_playlist_frame(master)
         self.playlist_listbox = create_playlist_listbox(playlist_frame, self.on_playlist_select)
@@ -191,13 +190,12 @@ class MusicAppGUI:
         self._update_ui_for_new_track()
 
     def set_volume(self, val):
-        """Définit le volume du mixeur Pygame."""
-        volume = float(val) / 100.0
-        pygame.mixer.music.set_volume(volume)
+        """Définit le volume de lecture."""
+        self.player.set_volume(val)
 
     def update_player_status(self):
         """
-        Appelée périodiquement pour mettre à jour l'état du lecteur Pygame
+        Appelée périodiquement pour mettre à jour l'état du lecteur
         et l'interface graphique (temps, progression).
         """
         previous_track_index = self.player.current_track_index
@@ -215,7 +213,7 @@ class MusicAppGUI:
             if total_duration > 0:
                 self.progress_bar.set(current_pos_ms / total_duration)
 
-        if self.player.is_playing or self.player.is_paused or pygame.mixer.music.get_busy():
+        if self.player.is_playing or self.player.is_paused:
             self.master.after(self.update_interval, self.update_player_status)
         else:
             self.master.after(1000, self.update_player_status)
