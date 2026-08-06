@@ -1,4 +1,4 @@
-# scripts/time_format.py
+# src/time_format.py
 # Convertit une durée en millisecondes en chaîne MM:SS.
 
 def format_time(ms):

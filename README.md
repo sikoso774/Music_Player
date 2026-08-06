@@ -26,6 +26,6 @@ uv run main.py
 ```
 
 ## Notes
-- Supported audio formats are filtered by `AUDIO_FORMATS` in `scripts/player/audio_info.py`: `.mp3`, `.wav`, `.ogg`, `.flac`.
+- Supported audio formats are filtered by `AUDIO_FORMATS` in `src/player/audio_info.py`: `.mp3`, `.wav`, `.ogg`, `.flac`.
 - Track duration and tags (title/artist/album) are read via `mutagen`.
 - Ensure audio files are accessible and not corrupted.

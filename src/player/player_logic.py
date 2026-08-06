@@ -1,4 +1,4 @@
-# scripts/player/player_logic.py
+# src/player/player_logic.py
 
 import os
 

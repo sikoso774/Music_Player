@@ -1,5 +1,5 @@
-# scripts/gui/gui_logic.py
-from scripts.time_format import format_time
+# src/gui/gui_logic.py
+from src.time_format import format_time
 
 def calculate_seek_position(event_x, progress_bar_widget, total_duration_ms):
     """

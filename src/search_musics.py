@@ -1,10 +1,10 @@
-# scripts/start_up/search_musics.py
+# src/search_musics.py
 # Gère la recherche de musiques.
 
 import os
 import sys
 
-from scripts.player.audio_info import AUDIO_FORMATS
+from src.player.audio_info import AUDIO_FORMATS
 
 
 class MusicFinder:

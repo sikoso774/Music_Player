@@ -1,4 +1,4 @@
-# scripts/gui/music_app_gui.py
+# src/gui/music_app_gui.py
 
 import os
 import tkinter as tk # Garder l'import pour la Listbox
@@ -7,16 +7,15 @@ import customtkinter as ctk
 import pygame
 
 # Importe les classes et fonctions refactorisées
-from scripts.player.music_player import MusicPlayer
-from scripts.gui.gui_elements import (
+from src.player.music_player import MusicPlayer
+from src.gui.gui_elements import (
     create_main_window, create_track_label, create_artist_label, create_album_label,
     create_time_frame, create_time_labels, create_progress_bar,
     create_control_buttons_frame, create_control_buttons, create_volume_slider,
     create_playlist_frame, create_playlist_listbox, create_copyright_label,
 )
 # Utilise la fonction format_time de gui_logic.py pour l'affichage GUI
-from scripts.gui.gui_logic import format_time, calculate_seek_position
-from scripts.start_up.instructions import NOM, ANNEE # Importe les constantes pour le copyright
+from src.gui.gui_logic import format_time, calculate_seek_position
 
 
 class MusicAppGUI:
@@ -69,7 +68,7 @@ class MusicAppGUI:
         self.playlist_listbox = create_playlist_listbox(playlist_frame, self.on_playlist_select)
         self._populate_playlist_listbox()
 
-        self.copyright_label = create_copyright_label(master, NOM, ANNEE)
+        self.copyright_label = create_copyright_label(master)
 
         master.protocol("WM_DELETE_WINDOW", self.on_closing)
 

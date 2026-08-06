@@ -1,5 +1,5 @@
-# scripts/player/music_player.py
-from scripts.time_format import format_time
+# src/player/music_player.py
+from src.time_format import format_time
 
 from .audio_info import prepare_playlist_with_durations, get_audio_info
 from .pygame_setup import initialize_pygame_mixer, quit_pygame_mixer

@@ -1,4 +1,4 @@
-# scripts/player/pygame_setup.py
+# src/player/pygame_setup.py
 import pygame
 
 def initialize_pygame_mixer():
