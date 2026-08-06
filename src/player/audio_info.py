@@ -1,4 +1,4 @@
-# scripts/player/audio_info.py
+# src/player/audio_info.py
 import os
 from mutagen.mp3 import MP3
 from mutagen.wave import WAVE

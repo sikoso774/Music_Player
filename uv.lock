@@ -25,6 +25,27 @@ wheels = [
 ]
 
 [[package]]
+name = "music-player"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "customtkinter" },
+    { name = "mutagen" },
+    { name = "packaging" },
+    { name = "pillow" },
+    { name = "pygame-ce" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "customtkinter", specifier = ">=5.2.2" },
+    { name = "mutagen", specifier = ">=1.47.0" },
+    { name = "packaging", specifier = ">=26.0" },
+    { name = "pillow", specifier = ">=12.1.0" },
+    { name = "pygame-ce", specifier = ">=2.5.6" },
+]
+
+[[package]]
 name = "mutagen"
 version = "1.47.0"
 source = { registry = "https://pypi.org/simple" }
@@ -138,25 +159,4 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/3a/98/e5cd3053eac63d6a2622c654d4b09977375939beda34d203f064dac5dfd9/pygame_ce-2.5.6-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:266f976feb1a61bf19163416897189e6e7a8f78c362576a0afa214ffb7f1d18e", size = 12553880, upload-time = "2025-10-19T13:08:31.833Z" },
     { url = "https://files.pythonhosted.org/packages/58/a9/90b806a7bb24bdea638603ff6c3dc0debc8e29012ae389172943579761c7/pygame_ce-2.5.6-cp314-cp314-win32.whl", hash = "sha256:c73ce70c63ab45f778fdc9d10d27077f9cfc49d1fa4ea1ae0e5eca514b47b683", size = 9975637, upload-time = "2025-10-19T13:08:34.417Z" },
     { url = "https://files.pythonhosted.org/packages/87/1b/d9f180e142273dcef180ad3274213eba13ad76f335434979e584fbd57278/pygame_ce-2.5.6-cp314-cp314-win_amd64.whl", hash = "sha256:9579c4283fd644798632aac20d65282a2e7efcdf0f79b7c545fdeda372381e30", size = 10589621, upload-time = "2025-10-19T13:08:36.676Z" },
-]
-
-[[package]]
-name = "version-3"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "customtkinter" },
-    { name = "mutagen" },
-    { name = "packaging" },
-    { name = "pillow" },
-    { name = "pygame-ce" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "customtkinter", specifier = ">=5.2.2" },
-    { name = "mutagen", specifier = ">=1.47.0" },
-    { name = "packaging", specifier = ">=26.0" },
-    { name = "pillow", specifier = ">=12.1.0" },
-    { name = "pygame-ce", specifier = ">=2.5.6" },
 ]

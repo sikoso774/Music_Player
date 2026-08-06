@@ -1,7 +1,8 @@
-# scripts/player/player_logic.py
+# src/player/player_logic.py
+
+import os
 
 import pygame
-import os
 
 # --- Fonctions d'action de Pygame ---
 
@@ -17,7 +18,7 @@ def load_and_play(track_path, start_pos_s=0.0):
         return True
     except pygame.error as e:
         print(f"Erreur Pygame lors du chargement ou de la lecture de '{os.path.basename(track_path)}': {e}")
-        print(f"Assure-toi que le fichier est un format supporté et non corrompu.")
+        print("Assure-toi que le fichier est un format supporté et non corrompu.")
         return False
 
 def pause_pygame_music():

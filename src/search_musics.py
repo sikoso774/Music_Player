@@ -1,19 +1,10 @@
-# scripts/start_up/search_musics.py
+# src/search_musics.py
 # Gère la recherche de musiques.
 
 import os
 import sys
 
-# Importation de AUDIO_FORMATS et des modules mutagen car ils étaient initialement ici
-from mutagen.mp3 import MP3
-from mutagen.wave import WAVE
-from mutagen.oggvorbis import OggVorbis
-from mutagen.flac import FLAC
-from mutagen.id3 import ID3NoHeaderError
-
-
-# --- Formats audio supportés (pour la recherche) ---
-AUDIO_FORMATS = ('.mp3', '.wav', '.ogg', '.flac')
+from src.player.audio_info import AUDIO_FORMATS
 
 
 class MusicFinder:
@@ -45,11 +36,8 @@ class MusicFinder:
         else:
             print(f"Musiques trouvées ({len(self.found_musics)}):")
             # Affiche seulement les 5 premières pour ne pas spammer
-            for i, music in enumerate(self.found_musics[:5]):
+            for music in self.found_musics[:5]:
                 print(f"- {os.path.basename(music)}")
             if len(self.found_musics) > 5:
                 print(f"... et {len(self.found_musics) - 5} autres.")
         return self.found_musics
-
-# Les fonctions _get_audio_duration et _prepare_playlist ont été déplacées
-# dans scripts/player/audio_info.py, donc elles ne sont plus ici.

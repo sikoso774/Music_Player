@@ -1,4 +1,4 @@
-# scripts/gui/gui_elements.py
+# src/gui/gui_elements.py
 
 import customtkinter as ctk
 import tkinter as tk # Garder l'import pour la Listbox
@@ -93,7 +93,7 @@ def create_volume_slider(master, set_volume_cmd, initial_volume=50):
     volume_slider.pack(side="left")
     return volume_slider
 
-def create_copyright_label(master, author_name, year):
+def create_copyright_label(master, author_name="Zoléni KOKOLO ZASSI", year=2025):
     """Crée et retourne le label de copyright."""
     label = ctk.CTkLabel(master, text=f"Copyright: {author_name}, {year} ;)",
                          font=ctk.CTkFont(family="Arial", size=9, weight="normal"),
