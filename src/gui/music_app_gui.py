@@ -140,9 +140,9 @@ class MusicAppGUI:
             self._pending_seek_ms = None
 
             if self.player.is_playing:
-                self.play_pause_button.configure(text="⏯️ Pause")
+                self.play_pause_button.configure(text="⏸ Pause")
             else:
-                self.play_pause_button.configure(text="▶️ Play")
+                self.play_pause_button.configure(text="▶ Play")
 
         self._is_seeking = False
 
@@ -185,9 +185,9 @@ class MusicAppGUI:
             self.progress_bar.set(0) # Mettre la barre de progression à zéro
 
         if self.player.is_playing and not self.player.is_paused:
-            self.play_pause_button.configure(text="⏯️ Pause")
+            self.play_pause_button.configure(text="⏸ Pause")
         else:
-            self.play_pause_button.configure(text="▶️ Play")
+            self.play_pause_button.configure(text="▶ Play")
 
         self._highlight_current_track()
 
