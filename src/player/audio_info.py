@@ -47,6 +47,40 @@ def get_audio_info(filepath):
         return None
 
 
+def get_cover_bytes(filepath):
+    """
+    Retourne les octets de la pochette intégrée au fichier audio, ou None si absente.
+    Couvre les cas les plus courants : MP3 (APIC), FLAC (pictures), MP4/M4A (covr).
+    """
+    try:
+        audio = mutagen.File(filepath)
+        if audio is None:
+            return None
+
+        tags = audio.tags
+
+        # MP3 / ID3 : frames APIC
+        if tags is not None and hasattr(tags, 'getall'):
+            apics = tags.getall('APIC')
+            if apics:
+                return apics[0].data
+
+        # FLAC : liste de pictures
+        pictures = getattr(audio, 'pictures', None)
+        if pictures:
+            return pictures[0].data
+
+        # MP4 / M4A : atome 'covr'
+        if tags is not None and 'covr' in tags:
+            covers = tags['covr']
+            if covers:
+                return bytes(covers[0])
+
+        return None
+    except Exception:
+        return None
+
+
 def prepare_playlist_with_durations(raw_playlist):
     """
     Prépare une playlist en y ajoutant la durée et les métadonnées de chaque morceau.

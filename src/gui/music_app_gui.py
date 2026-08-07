@@ -1,25 +1,33 @@
 # src/gui/music_app_gui.py
 
+import io
 import os
 import tkinter as tk # Garder l'import pour la Listbox
 from tkinter import messagebox
 
 import customtkinter as ctk
+from PIL import Image
 
 # Importe les classes et fonctions refactorisées
 from src.player.music_player import MusicPlayer
 from src.player.vlc_setup import VlcNotAvailableError
+from src.player.audio_info import get_cover_bytes
 from src.gui.gui_elements import (
-    create_main_window, create_track_label, create_artist_label, create_album_label,
+    create_main_window, create_now_playing_frame, create_album_art, create_track_info,
     create_time_frame, create_time_labels, create_progress_bar,
     create_control_buttons_frame, create_control_buttons, create_volume_slider,
-    create_playlist_frame, create_playlist_listbox, create_copyright_label,
+    create_playlist_toggle, create_playlist_frame, create_playlist_listbox,
+    create_copyright_label,
 )
 # Utilise la fonction format_time de gui_logic.py pour l'affichage GUI
 from src.gui.gui_logic import format_time, calculate_seek_position
 
 
 class MusicAppGUI:
+    WINDOW_W = 480
+    EXPANDED_H = 560   # hauteur fenêtre playlist dépliée
+    COLLAPSED_H = 330  # hauteur fenêtre playlist repliée
+
     def __init__(self, master, found_musics):
         self.master = master
         create_main_window(master)
@@ -53,36 +61,42 @@ class MusicAppGUI:
         self.current_album_name = ctk.StringVar(value="Album inconnu")
         self.update_interval = 100
 
-        # --- Widgets de l'interface ---
-        self.track_label = create_track_label(master, self.current_track_name)
-        self.artist_label = create_artist_label(master, self.current_artist_name)
-        self.album_label = create_album_label(master, self.current_album_name)
+        self._pending_seek_ms = None
+        self._is_seeking = False
+        self._playlist_visible = True
+        self._art_image = None  # garde une réf. à la CTkImage courante (évite le GC)
 
+        # --- Cadre « en cours de lecture » : pochette + infos ---
+        now_playing = create_now_playing_frame(master)
+        self.album_art_label = create_album_art(now_playing)
+        self.track_label, self.artist_label, self.album_label = create_track_info(
+            now_playing, self.current_track_name, self.current_artist_name, self.current_album_name
+        )
+
+        # --- Temps + barre de progression ---
         time_frame = create_time_frame(master)
         self.time_label, self.total_time_label = create_time_labels(
             time_frame, self.current_time_str, self.total_time_str
         )
-        
-        
-        self._pending_seek_ms = None
-        self._is_seeking = False
-
         self.progress_bar = create_progress_bar(time_frame)
         self.progress_bar.bind("<Button-1>", self.on_progress_bar_press)
         self.progress_bar.bind("<B1-Motion>", self.on_progress_bar_drag)
         self.progress_bar.bind("<ButtonRelease-1>", self.on_progress_bar_release)
 
+        # --- Contrôles + volume ---
         control_frame = create_control_buttons_frame(master)
         self.prev_button, self.play_pause_button, self.next_button = create_control_buttons(
             control_frame, self.play_previous, self.toggle_play_pause, self.play_next
         )
-        
         self.volume_slider = create_volume_slider(master, self.set_volume,
                                                   initial_volume=self.player.get_volume())
 
-        playlist_frame = create_playlist_frame(master)
-        self.playlist_listbox = create_playlist_listbox(playlist_frame, self.on_playlist_select)
+        # --- Playlist repliable ---
+        self.playlist_toggle = create_playlist_toggle(master, self.toggle_playlist)
+        self.playlist_frame = create_playlist_frame(master)
+        self.playlist_listbox = create_playlist_listbox(self.playlist_frame, self.on_playlist_select)
         self._populate_playlist_listbox()
+        self._update_playlist_toggle_text()
 
         self.copyright_label = create_copyright_label(master)
 
@@ -140,9 +154,9 @@ class MusicAppGUI:
             self._pending_seek_ms = None
 
             if self.player.is_playing:
-                self.play_pause_button.configure(text="⏯️ Pause")
+                self.play_pause_button.configure(text="⏸")
             else:
-                self.play_pause_button.configure(text="▶️ Play")
+                self.play_pause_button.configure(text="▶")
 
         self._is_seeking = False
 
@@ -185,11 +199,45 @@ class MusicAppGUI:
             self.progress_bar.set(0) # Mettre la barre de progression à zéro
 
         if self.player.is_playing and not self.player.is_paused:
-            self.play_pause_button.configure(text="⏯️ Pause")
+            self.play_pause_button.configure(text="⏸")
         else:
-            self.play_pause_button.configure(text="▶️ Play")
+            self.play_pause_button.configure(text="▶")
 
         self._highlight_current_track()
+        self._update_album_art()
+
+    def _update_album_art(self):
+        """Affiche la pochette du morceau courant, ou l'icône ♪ par défaut."""
+        track = self.player.get_current_track_info()
+        cover = get_cover_bytes(track['path']) if track else None
+        if cover:
+            try:
+                img = Image.open(io.BytesIO(cover))
+                self._art_image = ctk.CTkImage(light_image=img, dark_image=img, size=(72, 72))
+                self.album_art_label.configure(image=self._art_image, text="")
+                return
+            except Exception:
+                pass
+        self._art_image = None
+        self.album_art_label.configure(image=None, text="♪")
+
+    def toggle_playlist(self):
+        """Replie ou déplie la playlist et ajuste la hauteur de la fenêtre."""
+        if self._playlist_visible:
+            self.playlist_frame.pack_forget()
+            self.master.geometry(f"{self.WINDOW_W}x{self.COLLAPSED_H}")
+            self._playlist_visible = False
+        else:
+            self.playlist_frame.pack(pady=(6, 8), padx=16, fill="both", expand=True)
+            self.master.geometry(f"{self.WINDOW_W}x{self.EXPANDED_H}")
+            self._playlist_visible = True
+        self._update_playlist_toggle_text()
+
+    def _update_playlist_toggle_text(self):
+        """Met à jour le libellé du bouton de repli (chevron + nombre de morceaux)."""
+        chevron = "▾" if self._playlist_visible else "▸"
+        count = len(self.player.playlist)
+        self.playlist_toggle.configure(text=f"{chevron}  File d'attente · {count}")
 
     def toggle_play_pause(self):
         """Bascule entre lecture et pause."""
