@@ -5,9 +5,11 @@ import tkinter as tk # Garder l'import pour la Listbox
 import customtkinter as ctk
 
 from src.gui import theme
+from src.resource_path import resource_path
 
-def create_main_window(master, title="Mon Lecteur Musical", geometry="480x560", icon_path="assets/icon/zkz_icon.ico"):
+def create_main_window(master, title="Mon Lecteur Musical", geometry="480x560", icon_path=None):
     """Configure la fenêtre principale de l'application."""
+    icon_path = icon_path or resource_path("assets/icon/zkz_icon.ico")
     ctk.set_appearance_mode("dark")
     master.title(title)
     master.geometry(geometry)
