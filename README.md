@@ -1,18 +1,19 @@
 # Music Player
 
-A desktop music player combining a VLC audio engine with a CustomTkinter GUI: loads audio files from a local folder and plays them with full transport controls.
+A desktop music player combining a VLC audio engine with a PySide6/Qt GUI: loads audio files from a local folder and plays them with full transport controls.
 
 ## Features
 - Load songs from a local folder
 - Play, pause, skip, and seek (click or drag the progress bar) — seeking is instant, no reload of the file
-- Display track/artist/album info and playback progress in a CustomTkinter GUI
+- Display track/artist/album info, embedded album art, and playback progress
+- Collapsible queue, with the window smoothly following its height
 - Broad format support via VLC (mp3, wav, ogg, opus, flac, m4a, aac, wma, aiff, and more)
 
 ## Requirements
 - Python >= 3.12
 - [uv](https://docs.astral.sh/uv/) for dependency management
 - [VLC media player](https://www.videolan.org/vlc/) installed on the machine (provides libVLC, loaded at runtime by `python-vlc`)
-- Dependencies (see `pyproject.toml`): `python-vlc`, `customtkinter`, `mutagen`, `pillow`
+- Dependencies (see `pyproject.toml`): `python-vlc`, `PySide6`, `mutagen`, `pillow`
 
 ## Setup
 1. Install [VLC](https://www.videolan.org/vlc/) if not already installed.
