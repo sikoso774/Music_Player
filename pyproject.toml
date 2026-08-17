@@ -1,14 +1,14 @@
 [project]
 name = "music-player"
 version = "0.1.0"
-description = "Lecteur de musique de bureau combinant un moteur audio VLC et une interface CustomTkinter."
+description = "Lecteur de musique de bureau combinant un moteur audio VLC et une interface PySide6/Qt."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "customtkinter>=5.2.2",
     "mutagen>=1.47.0",
     "packaging>=26.0",
     "pillow>=12.1.0",
+    "pyside6>=6.11.1",
     "python-vlc>=3.0.21203",
 ]
 

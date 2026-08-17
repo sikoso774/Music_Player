@@ -1,43 +1,52 @@
 # src/gui/music_app_gui.py
 
-import io
 import os
-import tkinter as tk # Garder l'import pour la Listbox
-from tkinter import messagebox
 
-import customtkinter as ctk
-from PIL import Image
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QMessageBox, QLayout
 
-# Importe les classes et fonctions refactorisées
 from src.player.music_player import MusicPlayer
 from src.player.vlc_setup import VlcNotAvailableError
 from src.player.audio_info import get_cover_bytes
-from src.gui.gui_elements import (
-    create_main_window, create_now_playing_frame, create_album_art, create_track_info,
-    create_time_frame, create_time_labels, create_progress_bar,
-    create_control_buttons_frame, create_control_buttons, create_volume_slider,
-    create_playlist_toggle, create_playlist_frame, create_playlist_listbox,
-    create_copyright_label,
+from src.gui import theme
+from src.gui.gui_widgets import (
+    NowPlayingWidget, ProgressWidget, ControlsWidget, VolumeWidget, PlaylistWidget,
 )
-# Utilise la fonction format_time de gui_logic.py pour l'affichage GUI
-from src.gui.gui_logic import format_time, calculate_seek_position
+from src.resource_path import resource_path
 
 
-class MusicAppGUI:
+class MusicAppGUI(QMainWindow):
     WINDOW_W = 480
-    EXPANDED_H = 560   # hauteur fenêtre playlist dépliée
-    COLLAPSED_H = 330  # hauteur fenêtre playlist repliée
+    MARGIN = 16  # marge horizontale du layout central
+    UPDATE_INTERVAL_MS = 100
 
-    def __init__(self, master, found_musics):
-        self.master = master
-        create_main_window(master)
+    def __init__(self, found_musics):
+        super().__init__()
+        self.startup_failed = False
+
+        self.setWindowTitle("Mon Lecteur Musical")
+        self.setWindowIcon(QIcon(resource_path("assets/icon/zkz_icon.ico")))
+        self.setStyleSheet(theme.build_stylesheet())
+        # La taille est entièrement pilotée par le contenu (cf. _build_ui) : agrandir
+        # la fenêtre laisserait le contenu collé à gauche avec une zone morte à droite.
+        # On retire donc le bouton maximiser — équivalent du resizable(False, False)
+        # de la version CustomTkinter.
+        self.setWindowFlags(
+            Qt.Window
+            | Qt.WindowTitleHint
+            | Qt.WindowSystemMenuHint
+            | Qt.WindowMinimizeButtonHint
+            | Qt.WindowCloseButtonHint
+        )
 
         try:
             self.player = MusicPlayer(found_musics)
         except VlcNotAvailableError:
             print("Erreur : VLC n'est pas installé ou n'a pas pu être initialisé. "
                   "L'application GUI ne démarrera pas.")
-            messagebox.showerror(
+            QMessageBox.critical(
+                self,
                 "VLC introuvable",
                 "VLC media player n'a pas été détecté sur cet ordinateur.\n\n"
                 "Ce lecteur a besoin de VLC pour fonctionner. Merci d'installer VLC "
@@ -45,140 +54,88 @@ class MusicAppGUI:
                 "puis de relancer l'application."
             )
             self.startup_failed = True
-            master.destroy()
             return
 
         if not self.player.playlist:
             print("Erreur: La playlist est vide. L'application GUI ne démarrera pas correctement.")
             self.startup_failed = True
-            master.destroy()
             return
 
-        self.current_track_name = ctk.StringVar(value="Aucune musique chargée")
-        self.current_time_str = ctk.StringVar(value="00:00")
-        self.total_time_str = ctk.StringVar(value="00:00")
-        self.current_artist_name = ctk.StringVar(value="Artiste inconnu")
-        self.current_album_name = ctk.StringVar(value="Album inconnu")
-        self.update_interval = 100
+        self._build_ui()
 
-        self._pending_seek_ms = None
-        self._is_seeking = False
-        self._playlist_visible = True
-        self._art_image = None  # garde une réf. à la CTkImage courante (évite le GC)
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_player_status)
 
-        # --- Cadre « en cours de lecture » : pochette + infos ---
-        now_playing = create_now_playing_frame(master)
-        self.album_art_label = create_album_art(now_playing)
-        self.track_label, self.artist_label, self.album_label = create_track_info(
-            now_playing, self.current_track_name, self.current_artist_name, self.current_album_name
-        )
+        self.player.load_and_play_music(0)
+        self._update_ui_for_new_track()
+        self.timer.start(self.UPDATE_INTERVAL_MS)
 
-        # --- Temps + barre de progression ---
-        time_frame = create_time_frame(master)
-        self.time_label, self.total_time_label = create_time_labels(
-            time_frame, self.current_time_str, self.total_time_str
-        )
-        self.progress_bar = create_progress_bar(time_frame)
-        self.progress_bar.bind("<Button-1>", self.on_progress_bar_press)
-        self.progress_bar.bind("<B1-Motion>", self.on_progress_bar_drag)
-        self.progress_bar.bind("<ButtonRelease-1>", self.on_progress_bar_release)
+    def _build_ui(self):
+        central = QWidget()
+        central.setObjectName("centralWidget")
+        central.setAttribute(Qt.WA_StyledBackground, True)
+        self.setCentralWidget(central)
 
-        # --- Contrôles + volume ---
-        control_frame = create_control_buttons_frame(master)
-        self.prev_button, self.play_pause_button, self.next_button = create_control_buttons(
-            control_frame, self.play_previous, self.toggle_play_pause, self.play_next
-        )
-        self.volume_slider = create_volume_slider(master, self.set_volume,
-                                                  initial_volume=self.player.get_volume())
+        layout = QVBoxLayout(central)
+        layout.setContentsMargins(self.MARGIN, 16, self.MARGIN, 8)
+        layout.setSpacing(10)
+        # Force la fenêtre à toujours épouser la taille du contenu : c'est ce qui
+        # rend le repli/dépli de la playlist fluide (la fenêtre suit l'animation
+        # de hauteur de PlaylistWidget) et empêche le redimensionnement manuel.
+        layout.setSizeConstraint(QLayout.SetFixedSize)
+        # SetFixedSize contraint le widget à son sizeHint et écrase tout
+        # setFixedWidth() posé à côté : la largeur voulue doit donc être imposée
+        # *depuis l'intérieur* du layout. addStrut() fixe la largeur minimale du
+        # contenu (dimension perpendiculaire à un layout vertical), ce qui porte
+        # le sizeHint à WINDOW_W au lieu de la largeur naturelle des widgets.
+        layout.addStrut(self.WINDOW_W - 2 * self.MARGIN)
 
-        # --- Playlist repliable ---
-        self.playlist_toggle = create_playlist_toggle(master, self.toggle_playlist)
-        self.playlist_frame = create_playlist_frame(master)
-        self.playlist_listbox = create_playlist_listbox(self.playlist_frame, self.on_playlist_select)
-        self._populate_playlist_listbox()
-        self._update_playlist_toggle_text()
+        # QMainWindow ne reprend pas la contrainte de taille de son widget central :
+        # sans ça la fenêtre reste redimensionnable et le contenu se retrouve collé
+        # à gauche. On applique la même contrainte au layout de la fenêtre pour
+        # qu'elle épouse son contenu (et suive donc l'animation de la playlist).
+        self.layout().setSizeConstraint(QLayout.SetFixedSize)
 
-        self.copyright_label = create_copyright_label(master)
+        self.now_playing = NowPlayingWidget()
+        layout.addWidget(self.now_playing)
 
-        master.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.progress = ProgressWidget()
+        self.progress.seek_committed.connect(self._on_seek_committed)
+        layout.addWidget(self.progress)
 
-        # Démarrer la lecture de la première musique
-        if self.player.playlist:
-            self.player.load_and_play_music(0)
-            self._update_ui_for_new_track()
-            self._highlight_current_track()
-            # Démarrer la boucle de mise à jour de l'UI
-            self.master.after(self.update_interval, self.update_player_status)
-        else:
-            self.current_track_name.set("Aucune musique trouvée. Veuillez relancer.")
+        self.controls = ControlsWidget()
+        self.controls.prev_clicked.connect(self.play_previous)
+        self.controls.play_pause_clicked.connect(self.toggle_play_pause)
+        self.controls.next_clicked.connect(self.play_next)
+        layout.addWidget(self.controls)
 
+        self.volume = VolumeWidget()
+        self.volume.set_volume(self.player.get_volume())
+        self.volume.volume_changed.connect(self.set_volume)
+        layout.addWidget(self.volume)
 
-    def _populate_playlist_listbox(self):
-        """Remplit la Listbox avec les noms des morceaux de la playlist."""
-        self.playlist_listbox.delete(0, tk.END)
-        for index, track_info in enumerate(self.player.playlist):
-            track_name = os.path.basename(track_info['path'])
-            self.playlist_listbox.insert(tk.END, f"{index + 1}. {track_name}")
+        self.playlist = PlaylistWidget()
+        self.playlist.populate(self.player.playlist)
+        self.playlist.track_activated.connect(self._on_playlist_track_activated)
+        layout.addWidget(self.playlist)
 
-    def on_playlist_select(self, event):
-        """Gère la sélection d'un morceau dans la Listbox (double-clic)."""
-        selected_indices = self.playlist_listbox.curselection()
-        if selected_indices:
-            selected_index = selected_indices[0]
-            print(f"Morceau sélectionné dans la liste : {selected_index}")
-            self.player.load_and_play_music(selected_index)
-            self._update_ui_for_new_track()
-            self._highlight_current_track()
+        copyright_label = QLabel("Copyright: Zoléni KOKOLO ZASSI, 2025 ;)")
+        copyright_label.setObjectName("copyrightLabel")
+        copyright_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(copyright_label)
 
-    def _highlight_current_track(self):
-        """Met en surbrillance le morceau actuellement joué dans la Listbox."""
-        self.playlist_listbox.selection_clear(0, tk.END)
-        if 0 <= self.player.current_track_index < len(self.player.playlist):
-            self.playlist_listbox.selection_set(self.player.current_track_index)
-            self.playlist_listbox.activate(self.player.current_track_index)
-            self.playlist_listbox.see(self.player.current_track_index)
+    def _on_playlist_track_activated(self, index):
+        self.player.load_and_play_music(index)
+        self._update_ui_for_new_track()
 
-    def on_progress_bar_press(self, event):
-        """Démarre l'aperçu de position au clic sur la barre de progression."""
-        self._is_seeking = True
-        self._preview_seek_position(event.x)
-
-    def on_progress_bar_drag(self, event):
-        """Met à jour l'aperçu pendant le glissement, sans recharger la musique."""
-        self._preview_seek_position(event.x)
-
-    def on_progress_bar_release(self, event):
-        """Applique le déplacement une fois le clic/glissement terminé."""
-        if self._pending_seek_ms is not None:
-            self.player.seek_music(self._pending_seek_ms)
-            self._pending_seek_ms = None
-
-            if self.player.is_playing:
-                self.play_pause_button.configure(text="⏸")
-            else:
-                self.play_pause_button.configure(text="▶")
-
-        self._is_seeking = False
-
-    def _preview_seek_position(self, click_x):
-        """
-        Met à jour l'affichage (temps écoulé + barre) selon la position du clic/glissement.
-        Le morceau n'est rechargé qu'au relâchement du clic (voir on_progress_bar_release),
-        pour éviter de recharger/relancer le fichier audio à chaque pixel parcouru.
-        """
-        total_duration_ms = self.player.get_current_track_duration_ms()
-        if total_duration_ms == 0:
-            return
-
-        new_position_ms = calculate_seek_position(click_x, self.progress_bar, total_duration_ms)
-        self._pending_seek_ms = new_position_ms
-        self.current_time_str.set(format_time(new_position_ms))
-        self.progress_bar.set(new_position_ms / total_duration_ms)
+    def _on_seek_committed(self, position_ms):
+        self.player.seek_music(position_ms)
+        self.controls.set_playing(self.player.is_playing and not self.player.is_paused)
 
     def _update_ui_for_new_track(self):
         """Met à jour tous les éléments de l'UI liés au morceau actuel."""
-        if self.player.playlist and 0 <= self.player.current_track_index < len(self.player.playlist):
-            track_info = self.player.playlist[self.player.current_track_index]
+        track_info = self.player.get_current_track_info()
+        if track_info:
             metadata = track_info.get('metadata', {})
             duration_ms = track_info.get('duration_ms', 0)
 
@@ -186,58 +143,20 @@ class MusicAppGUI:
             if display_title == "Titre inconnu" and 'path' in track_info:
                 display_title = os.path.splitext(os.path.basename(track_info['path']))[0]
 
-            self.current_track_name.set(display_title)
-            self.current_artist_name.set(metadata.get('artist', "Artiste inconnu"))
-            self.current_album_name.set(metadata.get('album', "Album inconnu"))
-            self.total_time_str.set(format_time(duration_ms))
-
+            self.now_playing.set_track_info(
+                display_title,
+                metadata.get('artist', "Artiste inconnu"),
+                metadata.get('album', "Album inconnu"),
+            )
+            self.progress.set_duration(duration_ms)
+            self.now_playing.set_cover(get_cover_bytes(track_info['path']))
         else:
-            self.current_track_name.set("Aucune musique chargée")
-            self.current_artist_name.set("Artiste inconnu")
-            self.current_album_name.set("Album inconnu")
-            self.total_time_str.set("00:00")
-            self.progress_bar.set(0) # Mettre la barre de progression à zéro
+            self.now_playing.set_track_info("Aucune musique chargée", "Artiste inconnu", "Album inconnu")
+            self.progress.reset()
+            self.now_playing.set_cover(None)
 
-        if self.player.is_playing and not self.player.is_paused:
-            self.play_pause_button.configure(text="⏸")
-        else:
-            self.play_pause_button.configure(text="▶")
-
-        self._highlight_current_track()
-        self._update_album_art()
-
-    def _update_album_art(self):
-        """Affiche la pochette du morceau courant, ou l'icône ♪ par défaut."""
-        track = self.player.get_current_track_info()
-        cover = get_cover_bytes(track['path']) if track else None
-        if cover:
-            try:
-                img = Image.open(io.BytesIO(cover))
-                self._art_image = ctk.CTkImage(light_image=img, dark_image=img, size=(72, 72))
-                self.album_art_label.configure(image=self._art_image, text="")
-                return
-            except Exception:
-                pass
-        self._art_image = None
-        self.album_art_label.configure(image=None, text="♪")
-
-    def toggle_playlist(self):
-        """Replie ou déplie la playlist et ajuste la hauteur de la fenêtre."""
-        if self._playlist_visible:
-            self.playlist_frame.pack_forget()
-            self.master.geometry(f"{self.WINDOW_W}x{self.COLLAPSED_H}")
-            self._playlist_visible = False
-        else:
-            self.playlist_frame.pack(pady=(6, 8), padx=16, fill="both", expand=True)
-            self.master.geometry(f"{self.WINDOW_W}x{self.EXPANDED_H}")
-            self._playlist_visible = True
-        self._update_playlist_toggle_text()
-
-    def _update_playlist_toggle_text(self):
-        """Met à jour le libellé du bouton de repli (chevron + nombre de morceaux)."""
-        chevron = "▾" if self._playlist_visible else "▸"
-        count = len(self.player.playlist)
-        self.playlist_toggle.configure(text=f"{chevron}  File d'attente · {count}")
+        self.controls.set_playing(self.player.is_playing and not self.player.is_paused)
+        self.playlist.highlight_current(self.player.current_track_index)
 
     def toggle_play_pause(self):
         """Bascule entre lecture et pause."""
@@ -254,13 +173,13 @@ class MusicAppGUI:
         self.player.play_previous_music()
         self._update_ui_for_new_track()
 
-    def set_volume(self, val):
+    def set_volume(self, value):
         """Définit le volume de lecture."""
-        self.player.set_volume(val)
+        self.player.set_volume(value)
 
     def update_player_status(self):
         """
-        Appelée périodiquement pour mettre à jour l'état du lecteur
+        Appelée périodiquement (QTimer) pour mettre à jour l'état du lecteur
         et l'interface graphique (temps, progression).
         """
         previous_track_index = self.player.current_track_index
@@ -270,21 +189,17 @@ class MusicAppGUI:
         if self.player.current_track_index != previous_track_index:
             self._update_ui_for_new_track()
 
-        if not self._is_seeking:
-            current_pos_ms = self.player.get_current_time_ms()
-            self.current_time_str.set(format_time(current_pos_ms))
+        if not self.progress.is_seeking:
+            self.progress.update_position(self.player.get_current_time_ms())
 
-            total_duration = self.player.get_current_track_duration_ms()
-            if total_duration > 0:
-                self.progress_bar.set(current_pos_ms / total_duration)
+        interval = self.UPDATE_INTERVAL_MS if (self.player.is_playing or self.player.is_paused) else 1000
+        self.timer.setInterval(interval)
 
-        if self.player.is_playing or self.player.is_paused:
-            self.master.after(self.update_interval, self.update_player_status)
-        else:
-            self.master.after(1000, self.update_player_status)
-
-    def on_closing(self):
+    def closeEvent(self, event):
         """Gère la fermeture de l'application."""
         print("Fermeture de l'application...")
-        self.player.quit()
-        self.master.destroy()
+        if hasattr(self, "timer"):
+            self.timer.stop()
+        if hasattr(self, "player"):
+            self.player.quit()
+        super().closeEvent(event)

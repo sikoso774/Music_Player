@@ -1,7 +1,7 @@
 import os
 import sys
 
-import customtkinter as ctk
+from PySide6.QtWidgets import QApplication
 
 # PyInstaller (mode --windowed) : sans console attachée, stdout/stderr peuvent
 # être None, ce qui ferait planter le moindre print(). On les neutralise ici.
@@ -20,10 +20,11 @@ if __name__ == "__main__":
         found_musics = music_finder.find_music_files()
 
         if found_musics:
-            root = ctk.CTk()
-            app = MusicAppGUI(root, found_musics)
-            if not getattr(app, "startup_failed", False):
-                root.mainloop()
+            app = QApplication(sys.argv)
+            window = MusicAppGUI(found_musics)
+            if not window.startup_failed:
+                window.show()
+                sys.exit(app.exec())
         else:
             print("Aucune musique trouvée, le lecteur ne peut pas démarrer.")
     except KeyboardInterrupt:

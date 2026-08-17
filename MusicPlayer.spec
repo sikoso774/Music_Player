@@ -2,7 +2,7 @@
 # Fichier de build PyInstaller. Usage : uv run pyinstaller MusicPlayer.spec
 #
 # VLC reste une dépendance externe (non embarquée) : l'utilisateur doit avoir
-# VLC installé sur sa machine. Les données internes de CustomTkinter sont
+# VLC installé sur sa machine. Les données internes de PySide6 (Qt) sont
 # collectées automatiquement par le hook fourni par pyinstaller-hooks-contrib.
 
 a = Analysis(
