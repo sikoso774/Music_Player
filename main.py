@@ -1,6 +1,7 @@
 import os
 import sys
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
 # PyInstaller (mode --windowed) : sans console attachée, stdout/stderr peuvent
@@ -21,6 +22,9 @@ if __name__ == "__main__":
 
         if found_musics:
             app = QApplication(sys.argv)
+            # Verrouille le rendu sombre (barre de titre Windows comprise), même
+            # si le système est en mode clair — l'interface est noire de bout en bout.
+            app.styleHints().setColorScheme(Qt.ColorScheme.Dark)
             window = MusicAppGUI(found_musics)
             if not window.startup_failed:
                 window.show()

@@ -1,9 +1,7 @@
 # src/gui/music_app_gui.py
 
-import os
-
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QColor, QIcon, QPainter, QRadialGradient
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QMessageBox, QLayout
 
 from src.player.music_player import MusicPlayer
@@ -12,13 +10,32 @@ from src.player.audio_info import get_cover_bytes
 from src.gui import theme
 from src.gui.gui_widgets import (
     NowPlayingWidget, ProgressWidget, ControlsWidget, VolumeWidget, PlaylistWidget,
+    clean_display_title,
 )
 from src.resource_path import resource_path
 
 
+class _VignetteBackground(QWidget):
+    """
+    Fond du widget central : noir profond + vignette radiale verte très diffuse,
+    centrée vers la zone du bouton lecture. Peinte main : le QSS ne sait pas
+    positionner un dégradé radial ailleurs qu'au centre géométrique.
+    """
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor(theme.BG_WINDOW))
+        gradient = QRadialGradient(self.width() / 2, self.height() * 0.32,
+                                   self.width() * 0.85)
+        gradient.setColorAt(0.0, QColor(57, 255, 106, 13))
+        gradient.setColorAt(0.5, QColor(57, 255, 106, 5))
+        gradient.setColorAt(1.0, QColor(57, 255, 106, 0))
+        painter.fillRect(self.rect(), gradient)
+
+
 class MusicAppGUI(QMainWindow):
     WINDOW_W = 480
-    MARGIN = 16  # marge horizontale du layout central
+    MARGIN = 20  # marge horizontale du layout central (laisse la place aux halos)
     UPDATE_INTERVAL_MS = 100
 
     def __init__(self, found_musics):
@@ -71,14 +88,14 @@ class MusicAppGUI(QMainWindow):
         self.timer.start(self.UPDATE_INTERVAL_MS)
 
     def _build_ui(self):
-        central = QWidget()
-        central.setObjectName("centralWidget")
-        central.setAttribute(Qt.WA_StyledBackground, True)
+        central = _VignetteBackground()
         self.setCentralWidget(central)
 
         layout = QVBoxLayout(central)
-        layout.setContentsMargins(self.MARGIN, 16, self.MARGIN, 8)
-        layout.setSpacing(10)
+        layout.setContentsMargins(self.MARGIN, 18, self.MARGIN, 10)
+        # Rythme vertical : serré à l'intérieur du groupe transport
+        # (progression/boutons/volume), respirations aux frontières.
+        layout.setSpacing(6)
         # Force la fenêtre à toujours épouser la taille du contenu : c'est ce qui
         # rend le repli/dépli de la playlist fluide (la fenêtre suit l'animation
         # de hauteur de PlaylistWidget) et empêche le redimensionnement manuel.
@@ -98,6 +115,7 @@ class MusicAppGUI(QMainWindow):
 
         self.now_playing = NowPlayingWidget()
         layout.addWidget(self.now_playing)
+        layout.addSpacing(10)
 
         self.progress = ProgressWidget()
         self.progress.seek_committed.connect(self._on_seek_committed)
@@ -113,6 +131,7 @@ class MusicAppGUI(QMainWindow):
         self.volume.set_volume(self.player.get_volume())
         self.volume.volume_changed.connect(self.set_volume)
         layout.addWidget(self.volume)
+        layout.addSpacing(10)
 
         self.playlist = PlaylistWidget()
         self.playlist.populate(self.player.playlist)
@@ -139,12 +158,8 @@ class MusicAppGUI(QMainWindow):
             metadata = track_info.get('metadata', {})
             duration_ms = track_info.get('duration_ms', 0)
 
-            display_title = metadata.get('title', "Titre inconnu")
-            if display_title == "Titre inconnu" and 'path' in track_info:
-                display_title = os.path.splitext(os.path.basename(track_info['path']))[0]
-
             self.now_playing.set_track_info(
-                display_title,
+                clean_display_title(track_info),
                 metadata.get('artist', "Artiste inconnu"),
                 metadata.get('album', "Album inconnu"),
             )
@@ -155,7 +170,9 @@ class MusicAppGUI(QMainWindow):
             self.progress.reset()
             self.now_playing.set_cover(None)
 
-        self.controls.set_playing(self.player.is_playing and not self.player.is_paused)
+        actively_playing = self.player.is_playing and not self.player.is_paused
+        self.controls.set_playing(actively_playing)
+        self.playlist.set_playing(actively_playing)
         self.playlist.highlight_current(self.player.current_track_index)
 
     def toggle_play_pause(self):

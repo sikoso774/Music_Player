@@ -46,9 +46,13 @@ Startup sequence in `main.py`:
   - `gui_widgets.py` — the custom widgets (`NowPlayingWidget`, `ProgressWidget`, `ControlsWidget`, `VolumeWidget`, `PlaylistWidget`), each a self-contained `QWidget` exposing Qt signals. They render and emit; they never touch `MusicPlayer`.
   - `music_app_gui.py` — `MusicAppGUI` (a `QMainWindow`), the controller. Owns a `MusicPlayer`, connects the widgets' signals to it, and runs a `QTimer` polling loop to refresh the progress bar/labels and detect track-end.
 
-  Two Qt gotchas the layout depends on, both easy to reintroduce:
+  Qt gotchas the layout and the neon rendering depend on, all easy to reintroduce:
   - A bare `QWidget` ignores QSS `background-color`/`border` unless it sets `Qt.WA_StyledBackground` (unlike `QLabel`/`QPushButton`, which honor them natively).
   - `QLayout.SetFixedSize` pins a widget to its `sizeHint` and silently overrides any `setFixedWidth()` set alongside it. The window width is therefore imposed *from inside* the layout via `addStrut()`, and the same constraint is applied to the `QMainWindow`'s own layout — otherwise the window stays resizable and the content sits left-aligned with dead space beside it.
+  - Under `SetFixedSize`, a non-wrapping `QLabel` with long text widens the whole window (its `sizeHint` is read before any elision happens). The now-playing labels use a horizontal `QSizePolicy.Ignored` and elide themselves in `resizeEvent`.
+  - One `QGraphicsEffect` per widget, ever — setting a second silently replaces the first. Effects go on leaf widgets (an effect on a container flattens and blurs all its children together). Multi-layer halos are painted by hand in `paintEvent` with `CompositionMode_Plus` passes instead (`NeonSlider`, playlist delegate).
+  - Enlarging a `QSlider` handle does not grow its `minimumSizeHint()` (stays 16 px); `NeonSlider` calls `setMinimumHeight()` or the handle/halo get clipped.
+  - The transport glyphs `◀◀`/`▶▶`/`▮▮` are deliberate: `⏮`/`⏭`/`⏸` sit in a Unicode range Windows restyles into colored Fluent icons that override all styling.
 - **`search_musics.py`** — `MusicFinder`, the one-shot startup music discovery step (see search order above). Not touched again after `main.py`'s setup phase.
 - **`time_format.py`** — single shared `format_time(ms)` helper (MM:SS), used by both `player/` and `gui/` to avoid either package depending on the other.
 
